@@ -19,6 +19,10 @@ export interface AgoraTokenData {
 export interface ClientStartRequest {
   requester_id: string;
   channel_name: string;
+  /** Display name of the user joining the session. */
+  user_name: string;
+  /** Role of the user: 'teacher' or 'student'. */
+  user_role: UserRole;
 }
 
 export interface StopConversationRequest {

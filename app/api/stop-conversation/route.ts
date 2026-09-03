@@ -16,6 +16,7 @@ function isAgentAlreadyStoppingOrStopped(error: unknown): boolean {
   const detail = maybeErr.body?.detail?.toLowerCase() ?? maybeErr.message?.toLowerCase() ?? '';
 
   if (statusCode === 404) return true;
+  if (statusCode === 400 && detail === 'errconflict') return true;
   if (reason === 'invalidrequest' && detail.includes('already in the process of shutting down')) {
     return true;
   }

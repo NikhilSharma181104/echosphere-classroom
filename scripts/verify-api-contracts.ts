@@ -335,6 +335,8 @@ async function verifyInviteAgentSuccess() {
       body: JSON.stringify({
         requester_id: 'user-4321',
         channel_name: 'test-channel',
+        user_name: 'Test User',
+        user_role: 'teacher',
       }),
       method: 'POST',
     });
@@ -373,8 +375,8 @@ async function verifyInviteAgentSuccess() {
     );
     assert(
       JSON.stringify(sessionConfig.remoteUids) ===
-        JSON.stringify(['user-4321']),
-      'POST /api/invite-agent should scope the session to the requesting user',
+        JSON.stringify(['1', '2', '3', '4', '5', '6']),
+      'POST /api/invite-agent should pass full reserved UID pool so agent hears all participants',
     );
   } finally {
     Agent.prototype.createSession = originalCreateSession;

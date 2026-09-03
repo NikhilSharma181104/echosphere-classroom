@@ -9,39 +9,39 @@ import {
   OpenAI,
 } from 'agora-agents';
 import { ClientStartRequest, AgentResponse } from '@/types/conversation';
-import { DEFAULT_AGENT_UID } from '@/lib/agora';
+import { DEFAULT_AGENT_UID, ALL_PARTICIPANT_UIDS } from '@/lib/agora';
 
 // ---------------------------------------------------------------------------
 // Classroom co-teacher system prompt
 //
-// The agent expects each turn to arrive prefixed with a speaker tag once the
-// per-turn role-injection pipeline is wired (Step 4). The format will be:
-//   [Teacher: Mr. Sharma]: <utterance>
-//   [Student: Priya]: <utterance>
-// The prompt is written to recognise that format now so behavior is correct
-// the moment Step 4 lands. Until then the agent works without the prefixes
-// and will introduce itself as the EchoSphere co-teacher.
+// {{teacher_name}} is substituted once at session start with the name of the
+// teacher who opened the classroom. All other participants are treated as
+// students unless they identify themselves. Per-turn speaker identity is not
+// technically available from the Agora pipeline, so complexity adaptation is
+// driven by how each question is phrased, not by assumed identity.
 // ---------------------------------------------------------------------------
-const ECHOSPHERE_PROMPT = `You are EchoSphere, an AI co-teacher assistant in a live classroom alongside a human teacher and their students.
+const ECHOSPHERE_PROMPT = `You are EchoSphere, an AI co-teacher assistant in a live classroom.
 
-# Speaker format
-Each message you receive will be prefixed with who said it, like this:
-  [Teacher: <name>]: <what they said>
-  [Student: <name>]: <what they said>
-Use these prefixes to understand who is speaking and adjust your response accordingly.
+# Who is in this session
+The teacher who opened this classroom is {{teacher_name}}. Other voices in the room are students unless they say otherwise. You cannot reliably tell who is speaking on each turn, so do not assume — judge each question on its own terms.
 
 # Default behaviour — listen first
 Stay silent unless you are:
 - Directly asked a question or asked to explain something
 - Invited to run a quiz or check comprehension
-- Addressing confusion that multiple students have shown
+- Addressing repeated confusion about the same concept
 
-Do NOT interrupt the teacher while they are actively explaining. Never add unsolicited commentary.
+Do NOT speak over the teacher while they are actively explaining. Never add unsolicited commentary between other people's turns.
 
-# Adapting to who is asking
-- Teacher questions → respond at peer level, like a knowledgeable colleague
-- Student questions → use simpler language, concrete examples, and analogies appropriate for the classroom level
-- If multiple students appear confused about the same concept, briefly acknowledge the pattern and offer a clearer re-explanation
+# Adapting explanation depth to how the question is phrased
+This is your primary way of calibrating — not assumed identity. Use these signals:
+- Simple vocabulary, short question, or "I don't understand" → give a simple, concrete explanation with an analogy or example
+- Technical vocabulary, specific terminology, or a nuanced follow-up → you may go deeper and use precise language
+- Do not assume a question is simple just because it came after a simple one, or advanced just because of who you think is asking
+- If someone says "explain it more simply" or "give me more detail", honour that immediately
+
+# If the teacher asks you directly
+Respond as a peer: concise, collegial, technically accurate. You do not need to simplify for the teacher unless they ask.
 
 # Language
 Respond in the same language or language mix the speaker used. Handle code-switched speech naturally.
@@ -54,7 +54,7 @@ This is text-to-speech audio. Follow these rules strictly:
 - Keep most responses to two or three sentences. Only go longer if the topic genuinely requires it.
 
 # Tone
-Warm, encouraging, and direct. You are a teaching assistant, not a search engine. Guide students to understanding rather than just giving answers.`;
+Warm, encouraging, and direct. You are a teaching assistant, not a search engine. Guide people to understanding rather than just giving answers.`;
 
 // Greeting said when the agent first joins the room.
 const GREETING = `Hi everyone, I'm EchoSphere, your AI co-teacher. I'll be here to help explain concepts and answer questions whenever you need me.`;
@@ -73,19 +73,25 @@ export async function POST(request: NextRequest) {
     // --- 1. Parse request ---
 
     const body: ClientStartRequest = await request.json();
-    const { requester_id, channel_name } = body;
+    const { requester_id, channel_name, user_name, user_role } = body;
 
     // Validate required env vars on first request so misconfiguration surfaces
     // with a clear error message rather than a silent failure.
     const appId = requireEnv('NEXT_PUBLIC_AGORA_APP_ID');
     const appCertificate = requireEnv('NEXT_AGORA_APP_CERTIFICATE');
 
-    if (!channel_name || !requester_id) {
+    if (!channel_name || !requester_id || !user_name || !user_role) {
       return NextResponse.json(
         { error: 'channel_name and requester_id are required' },
         { status: 400 },
       );
     }
+
+    // Build the teacher's name for session-level context in the system prompt.
+    // {{teacher_name}} is substituted once at session start — this is the only
+    // identity signal available (per-turn speaker tagging is not possible with
+    // the current Agora pipeline).
+    const teacherName = user_name;
 
     // --- 2. Build and start the agent ---
 
@@ -157,6 +163,11 @@ export async function POST(request: NextRequest) {
           greetingMessage: GREETING,
           failureMessage: 'Please wait a moment.',
           maxHistory: 15,
+          // Substitute the teacher's name into the system prompt at session start.
+          // {{teacher_name}} resolves to the name of whoever opened the classroom.
+          templateVariables: {
+            teacher_name: teacherName,
+          },
           params: {
             max_tokens: 1024,
             temperature: 0.7,
@@ -188,16 +199,27 @@ export async function POST(request: NextRequest) {
         //   voiceId: process.env.NEXT_ELEVENLABS_VOICE_ID ?? 'pNInz6obpgDQGcFmaJgB',
         //   sampleRate: 24000,
         // }),
-      );
+      )
+      .withInterruption({
+        // Disable barge-in so the agent completes its current answer before
+        // processing new speech. Strategy "append" queues incoming speech and
+        // answers it after the current response finishes — prevents dropped
+        // questions when multiple students speak close together.
+        enable: false,
+        disabled_config: { strategy: 'append' },
+      });
 
-    // remoteUids restricts the agent to only process audio from this user
+    // remoteUids: full reserved pool (teacher UID 1 + student slots 2–6).
+    // The agent listens to all slots from the start, whether or not every slot
+    // is occupied yet. This replaces the prior remoteUids:[] which Agora
+    // interpreted as "subscribe to nobody", preventing the agent from hearing anyone.
     const session = agent.createSession({
       channel: channel_name,
       agentUid,
-      remoteUids: [requester_id],
+      remoteUids: ALL_PARTICIPANT_UIDS,
       idleTimeout: 30,
       expiresIn: ExpiresIn.hours(1),
-      debug: false, // enable debug to show restful API calls in the console
+      debug: false,
     });
 
     const agentId = await session.start();

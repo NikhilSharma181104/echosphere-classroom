@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, Suspense, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import { TEACHER_UID } from '@/lib/agora';
 import type { RTMClient } from 'agora-rtm';
 import type {
   AgoraTokenData,
@@ -78,11 +79,17 @@ export default function LandingPage() {
     setUserSession(session);
 
     try {
+      // Teacher always joins as UID 1 (fixed). Students pass ?role=student and
+      // the server assigns the next available slot from the reserved pool (2–6),
+      // guaranteeing each student gets a unique UID regardless of which tab joins first.
+      const tokenUrl =
+        session.role === 'teacher'
+          ? `/api/generate-agora-token?channel=${encodeURIComponent(session.classroomCode)}&uid=${TEACHER_UID}`
+          : `/api/generate-agora-token?channel=${encodeURIComponent(session.classroomCode)}&role=student`;
+
       // 1. Fetch RTC token, passing the classroom code as the channel name so
       //    every participant with the same code lands in the same Agora room.
-      const agoraResponse = await fetch(
-        `/api/generate-agora-token?channel=${encodeURIComponent(session.classroomCode)}`,
-      );
+      const agoraResponse = await fetch(tokenUrl);
       const responseData = await agoraResponse.json();
 
       if (!agoraResponse.ok) {
@@ -91,48 +98,68 @@ export default function LandingPage() {
         );
       }
 
-      // 2. Run agent invite and RTM setup in parallel — both only need the token response.
-      //    RTM must be ready before ConversationComponent mounts so AgoraVoiceAI
-      //    can subscribe immediately. Agent invite is non-fatal.
-      const [agentData, rtm] = await Promise.all([
-        // 2a. Start the AI agent
-        fetch('/api/invite-agent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            requester_id: responseData.uid,
-            channel_name: responseData.channel,
-          } as ClientStartRequest),
-        })
-          .then(async (res) => {
-            if (!res.ok) {
+      // 2. Only the teacher starts the agent session — the agent is shared by
+      //    the whole classroom. Students join the existing channel directly;
+      //    calling invite-agent again would start a conflicting duplicate session.
+      //
+      //    RTM setup runs for everyone. Agent invite runs only for teachers,
+      //    in parallel with RTM so there's no extra latency for the teacher.
+
+      let agentData: AgentResponse | null = null;
+
+      if (session.role === 'teacher') {
+        // Teacher: start agent + RTM in parallel.
+        const [inviteResult, rtmResult] = await Promise.all([
+          fetch('/api/invite-agent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requester_id: responseData.uid,
+              channel_name: responseData.channel,
+              user_name: session.name,
+              user_role: session.role,
+            } as ClientStartRequest),
+          })
+            .then(async (res) => {
+              if (!res.ok) {
+                setAgentJoinError(true);
+                return null;
+              }
+              return res.json() as Promise<AgentResponse>;
+            })
+            .catch((err) => {
+              console.error('Failed to start conversation with agent:', err);
               setAgentJoinError(true);
               return null;
-            }
-            return res.json() as Promise<AgentResponse>;
-          })
-          .catch((err) => {
-            console.error('Failed to start conversation with agent:', err);
-            setAgentJoinError(true);
-            return null;
-          }),
+            }),
 
-        // 2b. Set up RTM (dynamically imported to keep it client-only)
-        (async () => {
-          const { default: AgoraRTM } = await import('agora-rtm');
-          const rtm: RTMClient = new AgoraRTM.RTM(
-            process.env.NEXT_PUBLIC_AGORA_APP_ID!,
-            responseData.uid,
-          );
-          await rtm.login({ token: responseData.token });
-          await rtm.subscribe(responseData.channel);
-          // console.log('RTM ready, channel:', responseData.channel);
-          return rtm;
-        })(),
-      ]);
+          (async () => {
+            const { default: AgoraRTM } = await import('agora-rtm');
+            const rtmClient: RTMClient = new AgoraRTM.RTM(
+              process.env.NEXT_PUBLIC_AGORA_APP_ID!,
+              responseData.uid,
+            );
+            await rtmClient.login({ token: responseData.token });
+            await rtmClient.subscribe(responseData.channel);
+            return rtmClient;
+          })(),
+        ]);
+
+        agentData = inviteResult;
+        setRtmClient(rtmResult);
+      } else {
+        // Student: agent is already running — just set up RTM.
+        const { default: AgoraRTM } = await import('agora-rtm');
+        const studentRtm: RTMClient = new AgoraRTM.RTM(
+          process.env.NEXT_PUBLIC_AGORA_APP_ID!,
+          responseData.uid,
+        );
+        await studentRtm.login({ token: responseData.token });
+        await studentRtm.subscribe(responseData.channel);
+        setRtmClient(studentRtm);
+      }
 
       // 3. All dependencies ready — store state and show conversation
-      setRtmClient(rtm);
       setAgoraData({ ...responseData, agentId: agentData?.agent_id });
       setShowConversation(true);
     } catch (err) {
@@ -184,7 +211,6 @@ export default function LandingPage() {
     // Stop the AI agent
     if (agoraData?.agentId) {
       try {
-        // console.log('Stopping agent:', agoraData.agentId);
         const response = await fetch('/api/stop-conversation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -193,7 +219,6 @@ export default function LandingPage() {
         if (!response.ok) {
           console.error('Failed to stop agent:', await response.text());
         }
-        // else console.log('Agent stopped successfully');
       } catch (error) {
         console.error('Error stopping agent:', error);
       }
