@@ -27,12 +27,23 @@ system (name + role + classroom code).
 - MUST NOT touch/break: the `isReady` StrictMode guard pattern, hook ownership
   (`useJoin` owns client.leave(), `useLocalMicrophoneTrack` owns track lifecycle),
   RTM token generation via `RtcTokenBuilder.buildTokenWithRtm`.
-- STEP 1 DONE: dependencies installed (pnpm install, 495 packages). .env.local created
-  from env.local.example with real credentials filled in (NEXT_PUBLIC_AGORA_APP_ID,
-  NEXT_AGORA_APP_CERTIFICATE, GEMINI_API_KEY). .env.local is gitignored, safe.
-- App has NOT been run yet. No feature code changed yet.
-- Status: Starting Step 2 — multi-user join flow with name + role + classroom code,
-  built on top of the existing single-user join in components/LandingPage.tsx.
+- STEP 1 DONE. STEP 2 DONE (join flow, roles, room isolation working).
+- STEP 3 ATTEMPTED: swapped LLM to Gemini, added ECHOSPHERE_PROMPT classroom persona.
+  Hit a wall: gemini-2.0-flash (404, deprecated) -> gemini-2.5-flash (404, deprecated
+  for new keys) -> gemini-3.6-flash (503, high demand, but confirmed valid via direct
+  curl test to Google's API). Time pressure (demo in ~10 hours) means we cannot risk
+  depending on an external LLM with availability issues.
+- DECISION: reverting LLM from Gemini back to Agora-managed OpenAI LLM (the original
+  default that was proven 100% working in early testing — greeted as "Ada" with zero
+  errors). KEEPING the ECHOSPHERE_PROMPT classroom co-teacher persona/system prompt —
+  only the LLM provider/model is reverting, not the prompt engineering work.
+- plan.md/KIRO_BRIEF.md tech stack note: Gemini BYOK is deprioritized for now due to
+  Google-side model deprecation/availability issues hit during Step 3. Agora-managed
+  OpenAI LLM is the working baseline going forward. May revisit Gemini or try Groq
+  (OpenAI-compatible, via the template's existing but unwired app/api/chat/completions/
+  route.ts) only if time remains after the app is otherwise demo-ready.
+- Status: Reverting Step 3's LLM choice to Agora-managed OpenAI, keeping the classroom
+  system prompt intact.
 
 ## Rules for this session
 1. Before making changes, briefly confirm you understand the current state above.
@@ -46,42 +57,33 @@ system (name + role + classroom code).
 ## Next task
 <!-- The specific task prompt goes here each session -->
 
-STEP 2 — Multi-user join flow with roles + classroom code
+STEP 3-REVERT — Revert LLM to Agora-managed OpenAI, keep classroom prompt
 
-Goal: extend the existing single-user join flow (components/LandingPage.tsx and related
-join logic) so that:
+Time-critical decision: revert the LLM from Gemini back to Agora's managed OpenAI LLM 
+(the one this template used by default before Step 3), since Gemini hit external API 
+issues (model deprecation + 503 high-demand errors) and we have a hard deadline (demo in 
+~10 hours).
 
-1. Join screen asks for:
-   - Name (text input)
-   - Role: "Teacher" or "Student" (dropdown/toggle)
-   - Classroom code:
-     - If role = Teacher: auto-generate a short random code (e.g. 6 characters) and
-       display it prominently so it can be shared with students.
-     - If role = Student: an input field to type in the classroom code given by the teacher.
+1. In app/api/invite-agent/route.ts:
+   - Remove the Gemini import and the .withLlm(new Gemini({...})) block.
+   - Restore the Agora-managed OpenAI LLM configuration that was there before Step 3.
+     Use git history to get this exactly right: run `git log --oneline` to find the
+     commit before Step 3's Gemini change, then `git show <that-commit>:app/api/invite-agent/route.ts`
+     to see the original .withLlm(...) block, and restore that exact OpenAI config.
+   - IMPORTANT: keep the ECHOSPHERE_PROMPT (classroom co-teacher system prompt) and the
+     GREETING constant from Step 3 — do NOT revert those. Only the LLM provider/model
+     config reverts to OpenAI; the persona/prompt content stays as-is.
+   - GEMINI_API_KEY can stay in .env.local (unused for now, harmless) — do not remove it,
+     we may revisit Gemini later if time permits.
 
-2. The classroom code becomes the Agora RTC channel name (so each classroom is an
-   isolated room — same pattern the template already uses for its single channel, just
-   parameterized by this code instead of a fixed/default value).
+2. Also apply this small cosmetic fix while in there: in
+   components/QuickstartPipelineMetrics.tsx, the hardcoded label already correctly says
+   'OpenAI LLM' — no change needed there since we're reverting to OpenAI anyway.
 
-3. Attach {name, role} as user metadata when joining the RTC channel, so this info is
-   available to other parts of the app later (we will use it when wiring the AI's
-   context in a future step — do not build that logic yet, just make sure name+role
-   travel with the user session, e.g. in RTM user attributes or app state accessible
-   after join).
-
-4. Keep everything else about the existing voice connection flow (isReady guard, hook
-   ownership, AgoraVoiceAI init) exactly as it is — you are adding a join screen on top,
-   not rewriting the connection logic.
-
-5. Do NOT add video/camera tracks yet — that is a separate future step. This step is
-   ONLY: join screen UI + role/name/classroom-code plumbing into the existing (audio-only)
-   channel join.
-
-6. After implementing, run: pnpm run lint && pnpm run typecheck
+3. Run: pnpm run lint && pnpm run typecheck && pnpm run verify:api
    Fix any errors those raise.
 
-7. Report back: which files you changed/created, and a short list of what I should
-   manually test in the browser (e.g. "open two tabs, join as teacher in one and
-   student with the same code in the other, confirm both connect to the same room").
+4. Report back: confirm the exact OpenAI model/config restored, and confirm
+   ECHOSPHERE_PROMPT/GREETING are still intact and unchanged.
 
 Do NOT run pnpm run dev yourself — I will test it manually.
