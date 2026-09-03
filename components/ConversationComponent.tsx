@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AgoraRTC, {
   useRTCClient,
   useLocalMicrophoneTrack,
@@ -93,6 +93,7 @@ function isRtmSalStatusPayload(value: unknown): value is RtmSalStatusPayload {
 export default function ConversationComponent({
   agoraData,
   rtmClient,
+  userSession,
   onTokenWillExpire,
   onEndConversation,
 }: ConversationComponentProps) {
@@ -101,6 +102,11 @@ export default function ConversationComponent({
   const [isEnabled, setIsEnabled] = useState(true);
   const [isAgentConnected, setIsAgentConnected] = useState(false);
   const [isConnectionDetailsOpen, setIsConnectionDetailsOpen] = useState(false);
+
+  // Stable ref for the user's session identity (name, role, classroomCode).
+  // Used in future steps when injecting role/name context into the AI prompt
+  // via RTM user attributes or per-turn metadata. Does not need to trigger re-renders.
+  const _userSessionRef = useRef(userSession);
 
   // Tracks granular RTC connection state for the status dot.
   // Agora states: DISCONNECTED | CONNECTING | CONNECTED | DISCONNECTING | RECONNECTING

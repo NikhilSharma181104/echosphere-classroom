@@ -9,10 +9,11 @@ import type {
   ClientStartRequest,
   AgentResponse,
   AgoraRenewalTokens,
+  UserSession,
 } from '../types/conversation';
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingSkeleton } from './LoadingSkeleton';
-import { QuickstartPreCallCard } from './QuickstartPreCallCard';
+import { JoinScreen } from './JoinScreen';
 
 // Dynamically import the ConversationComponent with ssr disabled
 const ConversationComponent = dynamic(() => import('./ConversationComponent'), {
@@ -58,7 +59,7 @@ export default function LandingPage() {
   const [showConversation, setShowConversation] = useState(false);
 
   // Preload heavy modules on mount so they're already cached when the user
-  // clicks "Try it Now" — eliminates the ~1.8s dynamic-import delay.
+  // clicks "Join Classroom" — eliminates the ~1.8s dynamic-import delay.
   useEffect(() => {
     import('agora-rtc-react').catch(() => {});
     import('agora-rtm').catch(() => {});
@@ -68,18 +69,21 @@ export default function LandingPage() {
   const [agoraData, setAgoraData] = useState<AgoraTokenData | null>(null);
   const [rtmClient, setRtmClient] = useState<RTMClient | null>(null);
   const [agentJoinError, setAgentJoinError] = useState(false);
+  const [userSession, setUserSession] = useState<UserSession | null>(null);
 
-  const handleStartConversation = async () => {
+  const handleJoin = async (session: UserSession) => {
     setIsLoading(true);
     setError(null);
     setAgentJoinError(false);
+    setUserSession(session);
 
     try {
-      // 1. Fetch RTC token + channel
-      // console.log('Fetching Agora token...');
-      const agoraResponse = await fetch('/api/generate-agora-token');
+      // 1. Fetch RTC token, passing the classroom code as the channel name so
+      //    every participant with the same code lands in the same Agora room.
+      const agoraResponse = await fetch(
+        `/api/generate-agora-token?channel=${encodeURIComponent(session.classroomCode)}`,
+      );
       const responseData = await agoraResponse.json();
-      // console.log('Agora token response: uid =', responseData.uid, 'channel =', responseData.channel);
 
       if (!agoraResponse.ok) {
         throw new Error(
@@ -132,8 +136,8 @@ export default function LandingPage() {
       setAgoraData({ ...responseData, agentId: agentData?.agent_id });
       setShowConversation(true);
     } catch (err) {
-      setError('Failed to start conversation. Please try again.');
-      console.error('Error starting conversation:', err);
+      setError('Failed to join classroom. Please try again.');
+      console.error('Error joining classroom:', err);
     } finally {
       setIsLoading(false);
     }
@@ -219,12 +223,12 @@ export default function LandingPage() {
           }`}
         >
           {!showConversation ? (
-            <QuickstartPreCallCard
+            <JoinScreen
               isLoading={isLoading}
               error={error}
-              onStartConversation={handleStartConversation}
+              onJoin={handleJoin}
             />
-          ) : agoraData && rtmClient ? (
+          ) : agoraData && rtmClient && userSession ? (
             <>
               {/* Non-fatal invite warning: the browser session can still render even if agent start failed. */}
               {agentJoinError && (
@@ -240,6 +244,7 @@ export default function LandingPage() {
                     <ConversationComponent
                       agoraData={agoraData}
                       rtmClient={rtmClient}
+                      userSession={userSession}
                       onTokenWillExpire={handleTokenWillExpire}
                       onEndConversation={handleEndConversation}
                     />

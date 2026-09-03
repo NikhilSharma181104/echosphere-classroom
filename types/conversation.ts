@@ -1,5 +1,14 @@
 import type { RTMClient } from 'agora-rtm';
 
+/** Lightweight session identity — no auth, just name + role + classroom. */
+export type UserRole = 'teacher' | 'student';
+
+export interface UserSession {
+  name: string;
+  role: UserRole;
+  classroomCode: string;
+}
+
 export interface AgoraTokenData {
   token: string;
   uid: string;
@@ -30,6 +39,7 @@ export interface AgoraRenewalTokens {
 export interface ConversationComponentProps {
   agoraData: AgoraTokenData;
   rtmClient: RTMClient;
+  userSession: UserSession;
   onTokenWillExpire: (uid: string) => Promise<AgoraRenewalTokens>;
   onEndConversation: () => void;
 }
