@@ -37,12 +37,12 @@ Build a voice AI co-teacher that joins a **live digital classroom** with a teach
 | Layer | Tool | Notes |
 |---|---|---|
 | Voice/Real-time layer | **Agora Conversational AI** | Mandatory. Handles audio streaming, VAD (turn-taking), agent orchestration |
-| STT | Agora-managed (Deepgram) | No separate key needed, part of Agora free minutes |
+| STT | Agora-managed (Deepgram, model nova-3) | No separate key needed, part of Agora free minutes |
 | TTS | Agora-managed (MiniMax) | No separate key needed |
-| LLM | **Gemini API** (AI Studio key, BYOK into Agora) | Context reasoning, explanation generation, gap detection, multilingual/code-switch handling |
+| LLM | **Agora-managed OpenAI (gpt-4o-mini)** | Reverted from Gemini after hitting model deprecation (404) and high-demand (503) errors during build — see Section 4c. Zero external key needed, proven stable. |
 | Frontend | **Next.js** (`agent-quickstart-nextjs` template) | Pre-wired Agora setup; classroom UI, join screen, role selection |
-| Backend / DB | **Azure** (App Service or Functions + Cosmos DB/Postgres) | Session storage, student identity, transcript logs, generated summaries |
-| UI Design | **Antigravity** | Visual design of dashboard/student view before Kiro builds it |
+| Backend / DB | **Azure** (planned, not yet started) | Deferred — current build uses in-session state + RTM broadcast instead (see Section 4c) |
+| UI Design | **Antigravity** | Not yet used |
 | Code generation | **Kiro** | Executes Claude's step-by-step prompts to build the app |
 
 ---
@@ -132,6 +132,58 @@ identity" without building real authentication infrastructure.
 
 ---
 
+## 4c. Reality Check — What Actually Got Built (deviations from original plan)
+
+This section tracks where the actual build diverged from the original plan above, and why.
+Keep the original sections for historical context, but treat THIS section as ground truth.
+
+- **LLM: Gemini abandoned, using Agora-managed OpenAI (gpt-4o-mini).** Hit
+  `gemini-2.0-flash` (404, deprecated) → `gemini-2.5-flash` (404, "no longer available to
+  new users") → `gemini-3.6-flash` (503, high demand, confirmed valid via direct API test).
+  Given the deadline, reverted to the proven-stable Agora-managed OpenAI path. The
+  classroom system prompt (persona, behavior rules) was preserved through this revert.
+  `GEMINI_API_KEY` remains in `.env.local`, unused — could revisit only if time allows.
+
+- **No video/camera tiles.** Audio-only, exactly as the base template was. The
+  Zoom/Meet-style multi-party experience is achieved via multi-user audio join +
+  Agora RTC channel isolation (via classroom code), NOT via a video grid UI. This was
+  deprioritized given time constraints — a working audio-only classroom that nails the
+  AI behavior requirements scores better than an unfinished video UI.
+
+- **No Azure/DB integration (yet).** Deferred. Currently all session state (name, role,
+  classroom code) lives in browser/React state, not persisted server-side. Per-student
+  history across multiple classes (mentioned in the original Section 5 table) is NOT
+  built. If time remains after core AI features are solid, this is the last priority.
+
+- **Student identity reaches the AI in a limited way.** Agora's managed Conversational AI
+  pipeline does not expose true per-turn speaker diarization to the LLM — it cannot tell
+  which student is speaking on a given turn. Workaround implemented: the TEACHER's name
+  is injected into the system prompt at session start via `templateVariables`
+  (`{{teacher_name}}`). Full student-level identification is being solved via a
+  **shared RTM-broadcast transcript** instead (see Phase 6 update below) — each client
+  broadcasts its own completed turns tagged with name/role over the existing RTM channel;
+  the teacher's client compiles this into an attributed log, which is what feeds the
+  post-class summary. This is the practical substitute for true voice diarization.
+
+- **Teacher override is a full stop/restart, not a lighter mute.** Agora's agent session
+  API only supports `stop()` / `start()` — no pause/silence primitive. "Mute AI" calls
+  the stop-conversation route (agent leaves the channel); "Unmute AI" calls invite-agent
+  again (agent rejoins, fresh session). Known limitation: conversation history/context is
+  lost across a mute/unmute cycle since it's a genuinely new agent session. Acceptable
+  for a hackathon demo.
+
+- **Turn-taking tuning:** AI interruption was initially disabled entirely
+  (`interruption.enable: false`) to stop it from talking over the teacher — but this also
+  blocked humans from interrupting the AI, which felt unnatural. Fixed:
+  `interruption.enable: true` (humans CAN interrupt the AI mid-response), while
+  "don't talk over the teacher" remains governed separately by the system prompt (i.e.
+  the AI's own decision about when to START talking, not whether it can be interrupted
+  once talking). VAD timing was also loosened (`silence_duration_ms` 480ms → 800ms,
+  `prefix_padding_ms` 300ms → 400ms) to reduce false "could you repeat that" responses
+  from clipped speech — these are tunable starting points, not final values.
+
+---
+
 ## 5. Feature-to-Requirement Mapping
 
 | Requirement | How it's implemented |
@@ -149,43 +201,47 @@ identity" without building real authentication infrastructure.
 
 ---
 
-## 6. Build Phases
+## 6. Build Phases (updated with actual progress)
 
-**Phase 1 — Foundation (Agora + Gemini wiring)**
-- Set up Next.js quickstart template
-- Connect Agora App ID/Certificate
-- Connect Gemini API key as the LLM (BYOK)
-- Test: basic voice in/out working in a channel
+**Phase 1 — Foundation** ✅ DONE
+- Next.js quickstart template set up, Agora App ID/Certificate connected
+- Gemini attempted, abandoned (see 4c) — Agora-managed OpenAI is the working LLM
+- Basic voice in/out confirmed working
 
-**Phase 2 — Classroom Roles & Identity**
-- Multi-party video/audio room UI (Zoom/Meet-style grid, small scale ~4-6 tiles)
-- Join screen: name + role (teacher/student) selection + classroom code
-- Session/user identity tagging (no full auth — see Section 4b)
-- Teacher vs student view differences (control panel vs plain view)
+**Phase 2 — Classroom Roles & Identity** ✅ MOSTLY DONE (no video)
+- Join screen: name + role + classroom code — DONE (`JoinScreen.tsx`)
+- Room isolation via classroom-code-as-channel-name — DONE, verified with multi-tab test
+- Teacher vs student view differences — DONE (teacher-only mute/unmute controls)
+- Video/audio grid UI — NOT DONE, deprioritized (see 4c)
 
-**Phase 3 — Context & Turn-Taking Logic**
-- Rolling transcript buffer per session
-- Prompt engineering: role-aware, context-aware, turn-taking rules
-- Silent "gap logging" vs "speak now" decision logic
+**Phase 3 — Context & Turn-Taking Logic** ✅ MOSTLY DONE
+- Classroom system prompt (ECHOSPHERE_PROMPT) — DONE
+- Turn-taking: AI waits for pauses, doesn't interrupt teacher, can itself be
+  interrupted — DONE, tuned (see 4c)
+- Rolling transcript buffer — partial: uses `maxHistory: 15` (conversation window),
+  not a dedicated lesson-topic tracker
+- Silent gap-logging logic — NOT YET, planned as part of Phase 6 rework below
 
-**Phase 4 — Adaptive Teaching Features**
-- Per-student explanation-level adjustment
-- Spoken quiz flow
-- Multilingual handling (test with code-switch input)
+**Phase 4 — Adaptive Teaching Features** ❌ NOT STARTED
+- Per-student explanation-level adjustment — blocked on student identity (being solved
+  via Phase 6 rework below)
+- Spoken quiz flow — not started
+- Multilingual handling — should work via OpenAI natively, not explicitly tested yet
 
-**Phase 5 — Teacher Controls**
-- Mute/override/force-speak buttons
-- Signaling from teacher client to AI agent
+**Phase 5 — Teacher Controls** ✅ DONE
+- Mute/Unmute AI button, teacher-only visibility — DONE (full stop/restart under the
+  hood, see 4c for limitation)
 
-**Phase 6 — Post-Class Intelligence**
-- Session-end trigger
-- Gemini-generated summary (common gaps, per-student notes)
-- Azure storage + dashboard display
+**Phase 6 — Post-Class Intelligence** 🔄 IN PROGRESS (reworked approach)
+- Original plan: Azure-stored summary. Current approach: RTM-broadcast tagged
+  transcript (each client sends its own completed turns with name/role over RTM;
+  teacher's client compiles the full attributed log) → sent to OpenAI at
+  "End Conversation" → structured summary (common gaps, students needing support,
+  overall summary) shown to teacher before session closes. No Azure storage yet —
+  summary is generated and displayed in-session only, not persisted.
 
-**Phase 7 — Polish & Demo Prep**
-- UI polish via Antigravity
-- Record demo video showing Agora integration clearly
-- Final submission
+**Phase 7 — Polish & Demo Prep** — NOT STARTED
+- UI polish, demo video recording, final submission
 
 ---
 
@@ -202,4 +258,15 @@ AZURE_...(added once backend is set up)
 
 ## 8. Next Immediate Step
 
-**Step 4: Set up the Next.js quickstart template using Kiro**, connect Agora + Gemini credentials, and get a basic working voice loop before adding any classroom logic.
+Building the RTM-tagged transcript + post-class summary feature (Phase 6 rework):
+each client broadcasts its own completed speech turns over RTM tagged with name/role;
+teacher's client compiles the attributed log; on "End Conversation," this log is sent
+to a new API route that calls OpenAI to generate a structured summary (common learning
+gaps, students needing support, overall summary) — shown to the teacher before the
+session closes. This is the feature that directly satisfies the problem statement's
+example scenario (identifying repeated gaps across students and telling the teacher
+who needs follow-up).
+
+After this: spoken quiz flow (mostly prompt-engineering, low cost) is the next-highest
+priority if time remains. Video grid and Azure/DB integration are explicitly
+deprioritized stretch goals given the deadline.

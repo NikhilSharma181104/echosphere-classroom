@@ -3,7 +3,7 @@
 import { useState, useRef, Suspense, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { Loader2, VolumeX, Volume2 } from 'lucide-react';
+import { Loader2, VolumeX, Volume2, FileText } from 'lucide-react';
 import { TEACHER_UID } from '@/lib/agora';
 import type { RTMClient } from 'agora-rtm';
 import type {
@@ -75,6 +75,26 @@ export default function LandingPage() {
   // Teacher-only: tracks whether the AI agent has been muted (stopped) by the teacher.
   const [isAiMuted, setIsAiMuted] = useState(false);
   const [isAiMuteLoading, setIsAiMuteLoading] = useState(false);
+
+  // Summary flow state (teacher-only)
+  type SummaryState = 'idle' | 'requesting' | 'waiting' | 'ready' | 'error';
+  const [summaryState, setSummaryState] = useState<SummaryState>('idle');
+  const [summaryText, setSummaryText] = useState<string>('');
+  const [summaryMode, setSummaryMode] = useState(false);
+  const summaryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Teacher-only: accumulates all completed transcript turns for the post-class summary.
+  // Stored in a ref so it doesn't cause re-renders and is always up-to-date in callbacks.
+  const sessionTranscriptLog = useRef<import('@/types/conversation').TranscriptTurn[]>([]);
+
+  const handleTranscriptTurn = useCallback(
+    (turn: import('@/types/conversation').TranscriptTurn) => {
+      // All clients call this, but only the teacher needs the full log.
+      // Accumulate regardless — it's cheap, and lets us use the log if role changes.
+      sessionTranscriptLog.current = [...sessionTranscriptLog.current, turn];
+    },
+    [],
+  );
 
   const handleJoin = async (session: UserSession) => {
     setIsLoading(true);
@@ -211,7 +231,67 @@ export default function LandingPage() {
     [agoraData],
   );
 
-  // Teacher-only: stops the AI agent so it won't respond until unmuted.
+  // Called by ConversationComponent when summary mode is active and an agent turn completes.
+  const handleSummaryTurn = useCallback((text: string) => {
+    if (summaryTimeoutRef.current) {
+      clearTimeout(summaryTimeoutRef.current);
+      summaryTimeoutRef.current = null;
+    }
+    setSummaryText(text);
+    setSummaryMode(false);
+    setSummaryState('ready');
+  }, []);
+
+  // Teacher-only: triggers the post-class summary via inject-think, then waits for agent response.
+  const handleEndClassAndSummary = useCallback(async () => {
+    if (!agoraData?.agentId) {
+      // No agent running — just end the conversation
+      void handleEndConversation();
+      return;
+    }
+    setSummaryState('requesting');
+    setSummaryMode(true);
+    try {
+      const res = await fetch('/api/inject-think', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: agoraData.agentId }),
+      });
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+      setSummaryState('waiting');
+
+      // 15-second timeout — if no agent turn arrives, surface an error
+      summaryTimeoutRef.current = setTimeout(() => {
+        setSummaryMode(false);
+        setSummaryState('error');
+      }, 15000);
+    } catch (err) {
+      console.error('Failed to request summary:', err);
+      setSummaryMode(false);
+      setSummaryState('error');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agoraData]);
+
+  const handleDownloadSummary = useCallback(async () => {
+    if (!summaryText || !userSession) return;
+    const { parseSummaryText, downloadSummaryPdf } = await import('@/lib/summary-pdf');
+    const parsed = parseSummaryText(summaryText);
+    await downloadSummaryPdf(parsed, userSession.classroomCode, userSession.name);
+  }, [summaryText, userSession]);
+
+  const handleDismissSummaryAndEnd = useCallback(async () => {
+    setSummaryState('idle');
+    setSummaryText('');
+    if (summaryTimeoutRef.current) {
+      clearTimeout(summaryTimeoutRef.current);
+      summaryTimeoutRef.current = null;
+    }
+    await handleEndConversation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Implementation: full agent stop via /api/stop-conversation (Agora has no lighter pause).
   // Known limitation: transcript history inside the agent is lost on stop/restart.
   const handleMuteAi = useCallback(async () => {
@@ -283,6 +363,8 @@ export default function LandingPage() {
     rtmClient?.logout().catch((err) => console.error('RTM logout error:', err));
     setRtmClient(null);
     setShowConversation(false);
+    // Reset transcript log for the next session
+    sessionTranscriptLog.current = [];
   };
 
   return (
@@ -327,29 +409,49 @@ export default function LandingPage() {
                       userSession={userSession}
                       teacherControls={
                         userSession.role === 'teacher' ? (
-                          <button
-                            type="button"
-                            onClick={isAiMuted ? handleUnmuteAi : handleMuteAi}
-                            disabled={isAiMuteLoading}
-                            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                              isAiMuted
-                                ? 'border-primary text-primary hover:bg-primary/10'
-                                : 'border-amber-500 text-amber-500 hover:bg-amber-500/10'
-                            }`}
-                            aria-label={isAiMuted ? 'Unmute AI co-teacher' : 'Mute AI co-teacher'}
-                            title={isAiMuted ? 'Resume AI responses' : 'Silence AI — stops it from responding until unmuted'}
-                          >
-                            {isAiMuteLoading ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : isAiMuted ? (
-                              <Volume2 className="h-3 w-3" />
-                            ) : (
-                              <VolumeX className="h-3 w-3" />
-                            )}
-                            {isAiMuted ? 'Unmute AI' : 'Mute AI'}
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={isAiMuted ? handleUnmuteAi : handleMuteAi}
+                              disabled={isAiMuteLoading}
+                              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                                isAiMuted
+                                  ? 'border-primary text-primary hover:bg-primary/10'
+                                  : 'border-amber-500 text-amber-500 hover:bg-amber-500/10'
+                              }`}
+                              aria-label={isAiMuted ? 'Unmute AI co-teacher' : 'Mute AI co-teacher'}
+                              title={isAiMuted ? 'Resume AI responses' : 'Silence AI — stops it from responding until unmuted'}
+                            >
+                              {isAiMuteLoading ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : isAiMuted ? (
+                                <Volume2 className="h-3 w-3" />
+                              ) : (
+                                <VolumeX className="h-3 w-3" />
+                              )}
+                              {isAiMuted ? 'Unmute AI' : 'Mute AI'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleEndClassAndSummary}
+                              disabled={summaryState === 'requesting' || summaryState === 'waiting'}
+                              className="flex items-center gap-1.5 rounded-full border border-primary px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+                              aria-label="End class and generate summary"
+                              title="Ends the class and asks the AI to generate a structured summary"
+                            >
+                              {(summaryState === 'requesting' || summaryState === 'waiting') ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <FileText className="h-3 w-3" />
+                              )}
+                              {summaryState === 'waiting' ? 'Generating…' : 'End Class & Summary'}
+                            </button>
+                          </>
                         ) : undefined
                       }
+                      onTranscriptTurn={handleTranscriptTurn}
+                      onSummaryTurn={handleSummaryTurn}
+                      summaryMode={summaryMode}
                       onTokenWillExpire={handleTokenWillExpire}
                       onEndConversation={handleEndConversation}
                     />
@@ -365,6 +467,55 @@ export default function LandingPage() {
           )}
         </div>
       </div>
+
+      {/* Summary modal — teacher-only, appears after inject-think response arrives */}
+      {userSession && userSession.role === 'teacher' && (summaryState === 'ready' || summaryState === 'error') && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Post-class summary"
+        >
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary shrink-0" />
+              <h2 className="text-lg font-semibold text-foreground">Post-Class Summary</h2>
+            </div>
+
+            {summaryState === 'error' ? (
+              <p className="text-sm text-destructive">
+                The summary timed out or failed to generate. You can still download the raw transcript or end the class.
+              </p>
+            ) : (
+              <div className="max-h-64 overflow-y-auto rounded-lg border border-border bg-background p-3">
+                <pre className="whitespace-pre-wrap text-xs text-foreground font-sans leading-relaxed">
+                  {summaryText}
+                </pre>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 pt-1">
+              {summaryState === 'ready' && (
+                <button
+                  type="button"
+                  onClick={handleDownloadSummary}
+                  className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-black hover:bg-white transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  Download Summary (PDF)
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleDismissSummaryAndEnd}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {summaryState === 'ready' ? 'End Class' : 'End Class Anyway'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Persistent attribution footer for the pre-call and in-call views. */}
       <footer className="fixed bottom-0 right-0 z-40 py-4 pr-4 md:py-6 md:pr-6">

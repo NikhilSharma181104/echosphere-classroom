@@ -41,12 +41,35 @@ export interface AgoraRenewalTokens {
   rtmToken: string;
 }
 
+/** A single attributed turn in the session log — used for the post-class summary. */
+export interface TranscriptTurn {
+  name: string;
+  role: 'teacher' | 'student' | 'agent';
+  text: string;
+  timestamp: number;
+}
+
 export interface ConversationComponentProps {
   agoraData: AgoraTokenData;
   rtmClient: RTMClient;
   userSession: UserSession;
   /** Optional slot for teacher-only controls rendered in the controls dock. */
   teacherControls?: ReactNode;
+  /**
+   * Called whenever a turn completes (local user or agent) so the parent can
+   * accumulate the session transcript log for the post-class summary.
+   */
+  onTranscriptTurn?: (turn: TranscriptTurn) => void;
+  /**
+   * Called when the AGENT produces a completed turn while summary mode is active
+   * (i.e. after inject-think fires). The parent uses this text to generate the PDF.
+   */
+  onSummaryTurn?: (text: string) => void;
+  /**
+   * When true, the next completed agent turn text is forwarded to onSummaryTurn (once).
+   * Set to true immediately before calling /api/inject-think.
+   */
+  summaryMode?: boolean;
   onTokenWillExpire: (uid: string) => Promise<AgoraRenewalTokens>;
   onEndConversation: () => void;
 }
