@@ -118,14 +118,19 @@ export async function POST(request: NextRequest) {
           start_of_speech: {
             mode: 'vad',
             vad_config: {
-              interrupt_duration_ms: 160, // ms of speech before interruption triggers
-              prefix_padding_ms: 300, // audio captured before speech is detected
+              // 400ms captures the very start of speech more reliably than 300ms,
+              // reducing cases where the first syllable is clipped before VAD fires.
+              interrupt_duration_ms: 160,
+              prefix_padding_ms: 400,
             },
           },
           end_of_speech: {
             mode: 'vad',
             vad_config: {
-              silence_duration_ms: 480, // ms of silence before turn ends
+              // 800ms is more forgiving of natural mid-sentence pauses.
+              // 480ms was cutting off speech too aggressively, causing partial
+              // transcripts and the "could you repeat that" failure mode.
+              silence_duration_ms: 800,
             },
           },
         },
@@ -201,12 +206,11 @@ export async function POST(request: NextRequest) {
         // }),
       )
       .withInterruption({
-        // Disable barge-in so the agent completes its current answer before
-        // processing new speech. Strategy "append" queues incoming speech and
-        // answers it after the current response finishes — prevents dropped
-        // questions when multiple students speak close together.
-        enable: false,
-        disabled_config: { strategy: 'append' },
+        // Interruption enabled: a human speaking can cut off the AI mid-response.
+        // This is separate from the system-prompt rule about not speaking over the
+        // teacher — that governs when the AI *initiates* speech; this governs whether
+        // it can be *stopped* once it has started. Enabling barge-in feels natural.
+        enable: true,
       });
 
     // remoteUids: full reserved pool (teacher UID 1 + student slots 2–6).

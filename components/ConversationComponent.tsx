@@ -94,6 +94,7 @@ export default function ConversationComponent({
   agoraData,
   rtmClient,
   userSession,
+  teacherControls,
   onTokenWillExpire,
   onEndConversation,
 }: ConversationComponentProps) {
@@ -526,6 +527,7 @@ export default function ConversationComponent({
             />
           </div>
           <MicrophoneSelector localMicrophoneTrack={localMicrophoneTrack} />
+          {teacherControls}
         </div>
       }
       onEndConversation={handleEndConversation}

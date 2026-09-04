@@ -3,6 +3,7 @@
 import { useState, useRef, Suspense, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import { Loader2, VolumeX, Volume2 } from 'lucide-react';
 import { TEACHER_UID } from '@/lib/agora';
 import type { RTMClient } from 'agora-rtm';
 import type {
@@ -71,6 +72,9 @@ export default function LandingPage() {
   const [rtmClient, setRtmClient] = useState<RTMClient | null>(null);
   const [agentJoinError, setAgentJoinError] = useState(false);
   const [userSession, setUserSession] = useState<UserSession | null>(null);
+  // Teacher-only: tracks whether the AI agent has been muted (stopped) by the teacher.
+  const [isAiMuted, setIsAiMuted] = useState(false);
+  const [isAiMuteLoading, setIsAiMuteLoading] = useState(false);
 
   const handleJoin = async (session: UserSession) => {
     setIsLoading(true);
@@ -207,6 +211,57 @@ export default function LandingPage() {
     [agoraData],
   );
 
+  // Teacher-only: stops the AI agent so it won't respond until unmuted.
+  // Implementation: full agent stop via /api/stop-conversation (Agora has no lighter pause).
+  // Known limitation: transcript history inside the agent is lost on stop/restart.
+  const handleMuteAi = useCallback(async () => {
+    if (!agoraData?.agentId || isAiMuteLoading) return;
+    setIsAiMuteLoading(true);
+    try {
+      await fetch('/api/stop-conversation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_id: agoraData.agentId }),
+      });
+      // Clear agentId so unmute knows to start fresh
+      setAgoraData((prev) => (prev ? { ...prev, agentId: undefined } : prev));
+      setIsAiMuted(true);
+    } catch (err) {
+      console.error('Failed to mute AI agent:', err);
+    } finally {
+      setIsAiMuteLoading(false);
+    }
+  }, [agoraData, isAiMuteLoading]);
+
+  // Teacher-only: starts a fresh agent session on the same channel so AI resumes.
+  const handleUnmuteAi = useCallback(async () => {
+    if (!agoraData || !userSession || isAiMuteLoading) return;
+    setIsAiMuteLoading(true);
+    try {
+      const res = await fetch('/api/invite-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requester_id: agoraData.uid,
+          channel_name: agoraData.channel,
+          user_name: userSession.name,
+          user_role: userSession.role,
+        } as ClientStartRequest),
+      });
+      if (res.ok) {
+        const data = await res.json() as AgentResponse;
+        setAgoraData((prev) => (prev ? { ...prev, agentId: data.agent_id } : prev));
+        setIsAiMuted(false);
+      } else {
+        console.error('Failed to unmute AI agent:', await res.text());
+      }
+    } catch (err) {
+      console.error('Failed to unmute AI agent:', err);
+    } finally {
+      setIsAiMuteLoading(false);
+    }
+  }, [agoraData, userSession, isAiMuteLoading]);
+
   const handleEndConversation = async () => {
     // Stop the AI agent
     if (agoraData?.agentId) {
@@ -270,6 +325,31 @@ export default function LandingPage() {
                       agoraData={agoraData}
                       rtmClient={rtmClient}
                       userSession={userSession}
+                      teacherControls={
+                        userSession.role === 'teacher' ? (
+                          <button
+                            type="button"
+                            onClick={isAiMuted ? handleUnmuteAi : handleMuteAi}
+                            disabled={isAiMuteLoading}
+                            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                              isAiMuted
+                                ? 'border-primary text-primary hover:bg-primary/10'
+                                : 'border-amber-500 text-amber-500 hover:bg-amber-500/10'
+                            }`}
+                            aria-label={isAiMuted ? 'Unmute AI co-teacher' : 'Mute AI co-teacher'}
+                            title={isAiMuted ? 'Resume AI responses' : 'Silence AI — stops it from responding until unmuted'}
+                          >
+                            {isAiMuteLoading ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : isAiMuted ? (
+                              <Volume2 className="h-3 w-3" />
+                            ) : (
+                              <VolumeX className="h-3 w-3" />
+                            )}
+                            {isAiMuted ? 'Unmute AI' : 'Mute AI'}
+                          </button>
+                        ) : undefined
+                      }
                       onTokenWillExpire={handleTokenWillExpire}
                       onEndConversation={handleEndConversation}
                     />

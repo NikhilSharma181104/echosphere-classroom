@@ -1,4 +1,5 @@
 import type { RTMClient } from 'agora-rtm';
+import type { ReactNode } from 'react';
 
 /** Lightweight session identity — no auth, just name + role + classroom. */
 export type UserRole = 'teacher' | 'student';
@@ -44,6 +45,8 @@ export interface ConversationComponentProps {
   agoraData: AgoraTokenData;
   rtmClient: RTMClient;
   userSession: UserSession;
+  /** Optional slot for teacher-only controls rendered in the controls dock. */
+  teacherControls?: ReactNode;
   onTokenWillExpire: (uid: string) => Promise<AgoraRenewalTokens>;
   onEndConversation: () => void;
 }
