@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import AgoraRTC, {
@@ -15,6 +15,8 @@ import {
   AgoraVoiceAI,
   AgoraVoiceAIEvents,
   AgentState,
+  ChatMessageType,
+  ChatMessagePriority,
   MessageSalStatus,
   TranscriptHelperMode,
   TurnStatus,
@@ -39,12 +41,12 @@ import {
   type ConnectionIssue,
 } from "./ConversationErrorCard";
 import { ConnectionStatusPanel } from "./ConnectionStatusPanel";
-import { QuickstartConversationLayout } from "./QuickstartConversationLayout";
+import { ClassroomConversationLayout } from "./ClassroomConversationLayout";
 import {
-  QuickstartPipelineMetrics,
-  type QuickstartAgentMetric,
-} from "./QuickstartPipelineMetrics";
-import { QuickstartTranscriptPanel } from "./QuickstartTranscriptPanel";
+  ClassroomPipelineMetrics,
+  type ClassroomAgentMetric,
+} from "./ClassroomPipelineMetrics";
+import { ClassroomTranscriptPanel } from "./ClassroomTranscriptPanel";
 import type {
   ConversationComponentProps,
   TranscriptTurn,
@@ -174,7 +176,7 @@ export default function ConversationComponent({
     TranscriptHelperItem<Partial<UserTranscription | AgentTranscription>>[]
   >([]);
   const [agentState, setAgentState] = useState<AgentState | null>(null);
-  const [agentMetrics, setAgentMetrics] = useState<QuickstartAgentMetric[]>([]);
+  const [agentMetrics, setAgentMetrics] = useState<ClassroomAgentMetric[]>([]);
   const [connectionIssues, setConnectionIssues] = useState<ConnectionIssue[]>(
     [],
   );
@@ -639,10 +641,15 @@ export default function ConversationComponent({
       .catch((err) => console.warn('[chat] RTM broadcast failed:', err));
 
     try {
-      await fetch('/api/inject-think', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: agoraData.agentId, text: prefixed }),
+      const ai = AgoraVoiceAI.getInstance();
+      if (!ai) throw new Error("AI not initialized");
+      
+      // Send the text message directly over RTM, avoiding the REST API 401 error
+      await ai.sendText(agoraData.agentId, {
+        messageType: ChatMessageType.TEXT,
+        text: prefixed,
+        priority: ChatMessagePriority.INTERRUPTED,
+        responseInterruptable: true,
       });
     } catch (err) {
       console.error('Failed to send chat message:', err);
@@ -652,7 +659,7 @@ export default function ConversationComponent({
   }, [chatText, isChatSending, agoraData, userSession, rtmClient]);
 
   return (
-    <QuickstartConversationLayout
+    <ClassroomConversationLayout
       statusPanel={
         <ConnectionStatusPanel
           connectionState={connectionState}
@@ -662,9 +669,9 @@ export default function ConversationComponent({
           onToggle={() => setIsConnectionDetailsOpen((open) => !open)}
         />
       }
-      pipelineMetrics={<QuickstartPipelineMetrics metrics={agentMetrics} />}
+      pipelineMetrics={<ClassroomPipelineMetrics metrics={agentMetrics} />}
       transcriptPanel={
-        <QuickstartTranscriptPanel
+        <ClassroomTranscriptPanel
           messageList={messageList}
           currentInProgressMessage={currentInProgressMessage}
           agentUID={agentUID}

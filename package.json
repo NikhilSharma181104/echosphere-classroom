@@ -1,7 +1,7 @@
 {
-  "name": "convoai-quickstart-web-nextjs",
+  "name": "echosphere-classroom",
   "version": "0.1.0",
-  "description": "Next.js quickstart for building conversational AI applications with Agora's Conversational AI Engine",
+  "description": "EchoSphere Classroom - Voice AI co-teacher for live digital classrooms powered by Agora Conversational AI",
   "private": true,
   "engines": {
     "node": ">=22"
@@ -31,7 +31,9 @@
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^13.2.0",
     "jspdf": "^4.2.1",
+    "lenis": "^1.3.26",
     "lucide-react": "^0.454.0",
     "next": "^16.2.6",
     "react": "^19.0.0",

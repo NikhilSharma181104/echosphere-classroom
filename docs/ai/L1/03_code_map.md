@@ -24,11 +24,11 @@ types/               Shared TypeScript route/component contracts
 
 ## Client Ownership (`components`)
 
-- `LandingPage.tsx`: pre-call shell, token/invite/RTM bootstrap, conversation mount/unmount.
+- `MeetingPage.tsx`: pre-call shell, token/invite/RTM bootstrap, conversation mount/unmount.
 - `ConversationComponent.tsx`: RTC join, mic publish, toolkit init, transcript/metrics/issues state.
-- `QuickstartConversationLayout.tsx`: in-call framing and slots.
-- `QuickstartTranscriptPanel.tsx`: live transcript panel.
-- `QuickstartPipelineMetrics.tsx`: latency chips from metrics stream.
+- `ClassroomConversationLayout.tsx`: in-call framing and slots.
+- `ClassroomTranscriptPanel.tsx`: live transcript panel.
+- `ClassroomPipelineMetrics.tsx`: latency chips from metrics stream.
 - `ConnectionStatusPanel.tsx` + `ConversationErrorCard.tsx`: issue rendering/severity.
 
 ## Shared Logic (`lib`)

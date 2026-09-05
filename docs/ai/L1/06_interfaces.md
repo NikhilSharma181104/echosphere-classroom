@@ -53,7 +53,7 @@ Optional SSE proxy path (not default runtime path). Requires `NEXT_LLM_API_KEY` 
 
 - RTM transcript/state/metrics/errors consumed through `AgoraVoiceAI` event emitter.
 - Raw RTM `message` event parsed as fallback for `message.error` and `message.sal_status` payloads.
-- `AGENT_METRICS` payloads displayed by `QuickstartPipelineMetrics`.
+- `AGENT_METRICS` payloads displayed by `ClassroomPipelineMetrics`.
 
 ## Environment Contract
 

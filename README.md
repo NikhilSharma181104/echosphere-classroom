@@ -163,12 +163,11 @@ NEXT_ELEVENLABS_VOICE_ID=...
 - `app/api/generate-agora-token/route.ts` — issues RTC + RTM tokens
 - `app/api/invite-agent/route.ts` — starts the agent session and configures the pipeline
 - `app/api/stop-conversation/route.ts` — stops the agent session
-- `components/LandingPage.tsx` — entry point: token fetch, RTM login, conversation lifecycle
+- `components/MeetingPage.tsx` — meeting entry point: token fetch, RTM login, conversation lifecycle
 - `components/ConversationComponent.tsx` — RTC client, transcript state, `AGENT_METRICS`, mic release
-- `components/QuickstartConversationLayout.tsx` — in-call header, transcript rail, controls dock
-- `components/QuickstartPipelineMetrics.tsx` — per-stage latency chips in the header
-- `components/QuickstartTranscriptPanel.tsx` — live transcript rail
-- `components/QuickstartPreCallCard.tsx` — pre-call hero card
+- `components/ClassroomConversationLayout.tsx` — in-call header, transcript rail, controls dock
+- `components/ClassroomPipelineMetrics.tsx` — per-stage latency chips in the header
+- `components/ClassroomTranscriptPanel.tsx` — live transcript rail
 - `lib/conversation.ts` — transcript normalization and visualizer state mapping
 - `AGENTS.md` — primary agent-facing guide
 

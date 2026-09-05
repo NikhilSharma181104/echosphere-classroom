@@ -54,6 +54,6 @@ Fallback parser:
 
 - `components/ConversationComponent.tsx`: event subscriptions and issue collection.
 - `lib/conversation.ts`: transcript + visualizer mapping transforms.
-- `components/QuickstartTranscriptPanel.tsx`: transcript render sink.
-- `components/QuickstartPipelineMetrics.tsx`: metrics render sink.
+- `components/ClassroomTranscriptPanel.tsx`: transcript render sink.
+- `components/ClassroomPipelineMetrics.tsx`: metrics render sink.
 - `components/ConnectionStatusPanel.tsx`: surfaced connection diagnostics.

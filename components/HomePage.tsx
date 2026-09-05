@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -11,12 +11,16 @@ import {
   Shield,
   MessageSquare,
   ArrowRight,
-  ChevronRight,
   Sparkles,
+  ArrowUpRight,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { FilterableGrid } from './FilterableGrid';
+import { FAQAccordion } from './FAQAccordion';
+import { TestimonialSlider } from './TestimonialSlider';
 
 /* ─────────────────────────────────────────────────────────────
-   Sticky frosted-glass nav with scroll-aware shadow
+   Floating pill-shaped dark nav (like reference images)
    ───────────────────────────────────────────────────────────── */
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -29,109 +33,141 @@ function Navbar() {
   }, []);
 
   return (
-    <nav
-      className={`nav-glass fixed top-0 left-0 right-0 z-50 transition-shadow duration-300 ${scrolled ? 'nav-glass-scrolled' : ''}`}
-    >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg"
-               style={{ background: 'var(--es-action-primary)' }}>
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
-          <span
-            className="text-lg font-semibold tracking-tight"
-            style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.32px' }}
-          >
-            SonaAI
-          </span>
-        </Link>
-
-        {/* Desktop nav links */}
-        <div className="hidden items-center gap-8 md:flex">
-          {['Features', 'How It Works', 'Testimonials'].map((item) => (
-            <a
-              key={item}
-              href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
-              className="text-sm font-medium transition-colors hover:opacity-70"
-              style={{ color: 'var(--es-text-secondary)', letterSpacing: '-0.16px' }}
+    <div className="fixed top-0 left-0 right-0 z-50 flex justify-center px-4 pt-3">
+      <nav
+        className={`w-full max-w-5xl rounded-[18px] px-6 transition-all duration-300 ${
+          scrolled ? 'py-2.5' : 'py-3'
+        }`}
+        style={{
+          background: 'rgba(3, 26, 16, 0.92)',
+          backdropFilter: 'blur(17px) saturate(1.2)',
+          WebkitBackdropFilter: 'blur(17px) saturate(1.2)',
+          border: '1px solid var(--es-border-subtle)',
+        }}
+      >
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <img src="/SonaAI%20icon1.png" alt="SonaAI Logo" className="h-8 w-8 object-contain bg-white p-1" style={{ borderRadius: '12px' }} />
+            <span
+              className="text-base font-bold tracking-tight"
+              style={{
+                color: '#FFFFFF',
+                letterSpacing: '-0.32px',
+                fontFamily: 'var(--font-manrope)',
+              }}
             >
-              {item}
-            </a>
-          ))}
-        </div>
-
-        {/* Desktop CTA */}
-        <div className="hidden items-center gap-3 md:flex">
-          <Link
-            href="/auth"
-            className="rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-              background: 'var(--es-action-primary)',
-              letterSpacing: '-0.32px',
-            }}
-          >
-            Get Started
+              SonaAI
+            </span>
           </Link>
-        </div>
 
-        {/* Mobile hamburger */}
-        <button
-          type="button"
-          className="flex h-9 w-9 items-center justify-center rounded-lg md:hidden"
-          style={{ border: '1px solid var(--es-border-subtle)' }}
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
-        >
-          <div className="flex flex-col gap-1">
-            <span
-              className={`block h-0.5 w-4 rounded-full transition-transform duration-200 ${mobileOpen ? 'translate-y-[3px] rotate-45' : ''}`}
-              style={{ background: 'var(--es-text-primary)' }}
-            />
-            <span
-              className={`block h-0.5 w-4 rounded-full transition-opacity duration-200 ${mobileOpen ? 'opacity-0' : ''}`}
-              style={{ background: 'var(--es-text-primary)' }}
-            />
-            <span
-              className={`block h-0.5 w-4 rounded-full transition-transform duration-200 ${mobileOpen ? '-translate-y-[3px] -rotate-45' : ''}`}
-              style={{ background: 'var(--es-text-primary)' }}
-            />
-          </div>
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="border-t px-6 pb-4 pt-3 md:hidden" style={{ borderColor: 'var(--es-border-subtle)' }}>
-          <div className="flex flex-col gap-3">
-            {['Features', 'How It Works', 'Testimonials'].map((item) => (
+          {/* Desktop nav links */}
+          <div className="hidden items-center gap-7 md:flex">
+            {[
+              { label: 'Home', href: '#', active: true },
+              { label: 'Features', href: '#features', active: false },
+              { label: 'How It Works', href: '#how-it-works', active: false },
+              { label: 'Testimonials', href: '#testimonials', active: false },
+            ].map((item) => (
               <a
-                key={item}
-                href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
-                className="text-sm font-medium py-1"
-                style={{ color: 'var(--es-text-secondary)' }}
-                onClick={() => setMobileOpen(false)}
+                key={item.label}
+                href={item.href}
+                className="group relative text-xs font-normal transition-colors duration-200 hover:text-white"
+                style={{
+                  color: item.active ? 'var(--es-action-primary)' : '#B2B2B2',
+                  fontFamily: 'sans-serif',
+                  letterSpacing: 'normal',
+                }}
               >
-                {item}
+                {item.label}
+                <span className="absolute -bottom-1 left-0 h-[1.5px] w-full origin-left scale-x-0 bg-current transition-transform duration-300 ease-out group-hover:scale-x-100" />
               </a>
             ))}
-            <Link
+          </div>
+
+          <div className="hidden items-center gap-3 md:flex">
+            <motion.a
               href="/auth"
-              className="mt-2 rounded-full px-5 py-2.5 text-center text-sm font-semibold text-white"
-              style={{ background: 'var(--es-action-primary)' }}
+              className="rounded-full px-5 py-2 text-sm font-bold"
+              whileHover={{ scale: 1.05, backgroundColor: '#bdec8a' }}
+              transition={{ duration: 0.2 }}
+              style={{
+                background: 'var(--es-action-primary)',
+                color: 'var(--es-on-primary)',
+                letterSpacing: '-0.16px',
+              }}
             >
               Get Started
-            </Link>
+            </motion.a>
           </div>
+
+          {/* Mobile hamburger */}
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center rounded-lg md:hidden"
+            style={{ border: '1px solid var(--es-border-subtle)' }}
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            <div className="flex flex-col gap-1">
+              <span
+                className={`block h-0.5 w-3.5 rounded-full transition-transform duration-200 ${mobileOpen ? 'translate-y-[3px] rotate-45' : ''}`}
+                style={{ background: '#FFFFFF' }}
+              />
+              <span
+                className={`block h-0.5 w-3.5 rounded-full transition-opacity duration-200 ${mobileOpen ? 'opacity-0' : ''}`}
+                style={{ background: '#FFFFFF' }}
+              />
+              <span
+                className={`block h-0.5 w-3.5 rounded-full transition-transform duration-200 ${mobileOpen ? '-translate-y-[3px] -rotate-45' : ''}`}
+                style={{ background: '#FFFFFF' }}
+              />
+            </div>
+          </button>
         </div>
-      )}
-    </nav>
+
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div
+            className="mt-3 border-t pt-3"
+            style={{ borderColor: 'var(--es-border-subtle)' }}
+          >
+            <div className="flex flex-col gap-3 pb-2">
+              {['Features', 'How It Works', 'Testimonials'].map((item) => (
+                <a
+                  key={item}
+                  href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
+                  className="text-sm font-medium py-1"
+                  style={{ color: '#B2B2B2' }}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {item}
+                </a>
+              ))}
+              <Link
+                href="/auth"
+                className="mt-1 rounded-full px-5 py-2.5 text-center text-sm font-bold"
+                style={{
+                  background: 'var(--es-action-primary)',
+                  color: 'var(--es-on-primary)',
+                }}
+              >
+                Get Started
+              </Link>
+            </div>
+          </div>
+        )}
+      </nav>
+    </div>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Feature card component
+   Feature card — white card on light bg
+   (dark text, lime icon badge)
    ───────────────────────────────────────────────────────────── */
+
+
 function FeatureCard({
   icon: Icon,
   title,
@@ -142,42 +178,51 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div
-      className="group rounded-[var(--es-radius-lg)] p-6 transition-all duration-300 hover:-translate-y-1"
+    <motion.div
+      className="group rounded-xl p-6"
+      whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+      transition={{ duration: 0.3 }}
       style={{
-        border: '1px solid var(--es-border-subtle)',
-        boxShadow: 'var(--es-card-shadow)',
-        background: 'var(--es-page-bg)',
+        background: '#FFFFFF',
+        border: '1px solid rgba(0,0,0,0.06)',
       }}
     >
       <div
-        className="mb-4 flex h-11 w-11 items-center justify-center rounded-[var(--es-radius-sm)] transition-colors duration-300 group-hover:scale-105"
-        style={{ background: 'var(--es-panel-bg-2)' }}
+        className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg"
+        style={{ background: 'var(--es-action-primary)' }}
       >
-        <Icon className="h-5 w-5" style={{ color: 'var(--es-text-primary)' }} />
+        <Icon className="h-5 w-5" style={{ color: 'var(--es-on-primary)' }} />
       </div>
       <h3
         className="mb-2 text-lg font-semibold"
         style={{
-          color: 'var(--es-text-primary)',
-          letterSpacing: '-0.16px',
-          lineHeight: '24.75px',
+          color: '#000000',
+          letterSpacing: '-0.324px',
+          fontFamily: 'var(--font-manrope)',
         }}
       >
         {title}
       </h3>
       <p
         className="text-sm leading-relaxed"
-        style={{ color: 'var(--es-text-secondary)', letterSpacing: '-0.16px' }}
+        style={{ color: '#707070', letterSpacing: 'normal' }}
       >
         {description}
       </p>
-    </div>
+      <div className="mt-4 flex items-center justify-between">
+        <span className="text-xs font-medium" style={{ color: '#707070' }}>
+          Learn more
+        </span>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-black/5">
+          <ArrowUpRight className="h-4 w-4" style={{ color: '#000000' }} />
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Step component for How It Works
+   Step component for How It Works (light section)
    ───────────────────────────────────────────────────────────── */
 function StepCard({
   number,
@@ -191,20 +236,27 @@ function StepCard({
   return (
     <div className="flex flex-col items-center text-center">
       <div
-        className="mb-5 flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold text-white"
-        style={{ background: 'var(--es-action-primary)' }}
+        className="mb-5 flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold"
+        style={{
+          background: 'var(--es-action-primary)',
+          color: 'var(--es-on-primary)',
+        }}
       >
         {number}
       </div>
       <h3
         className="mb-2 text-lg font-semibold"
-        style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.16px' }}
+        style={{
+          color: '#000000',
+          letterSpacing: '-0.324px',
+          fontFamily: 'var(--font-manrope)',
+        }}
       >
         {title}
       </h3>
       <p
         className="max-w-xs text-sm leading-relaxed"
-        style={{ color: 'var(--es-text-secondary)', letterSpacing: '-0.16px' }}
+        style={{ color: '#707070', letterSpacing: 'normal' }}
       >
         {description}
       </p>
@@ -213,77 +265,26 @@ function StepCard({
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Testimonial card
+   Section Badge Pill (lime badge)
    ───────────────────────────────────────────────────────────── */
-function TestimonialCard({
-  quote,
-  name,
-  role,
-  initials,
-}: {
-  quote: string;
-  name: string;
-  role: string;
-  initials: string;
-}) {
+function SectionBadge({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="rounded-[var(--es-radius-lg)] p-6"
+      className="mb-5 inline-flex items-center gap-2 rounded-full px-4 py-1.5"
       style={{
-        border: '1px solid var(--es-border-subtle)',
-        boxShadow: 'var(--es-card-shadow)',
-        background: 'var(--es-page-bg)',
+        background: 'var(--es-action-primary)',
+        color: 'var(--es-on-primary)',
       }}
     >
-      <p
-        className="mb-5 text-base leading-7 italic"
-        style={{ color: 'var(--es-text-secondary)', letterSpacing: '-0.16px' }}
-      >
-        &ldquo;{quote}&rdquo;
-      </p>
-      <div className="flex items-center gap-3">
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-white"
-          style={{ background: 'var(--es-action-primary)' }}
-        >
-          {initials}
-        </div>
-        <div>
-          <p className="text-sm font-semibold" style={{ color: 'var(--es-text-primary)' }}>
-            {name}
-          </p>
-          <p className="text-xs" style={{ color: 'var(--es-text-muted)' }}>
-            {role}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Animated stat counter
-   ───────────────────────────────────────────────────────────── */
-function StatCounter({
-  value,
-  label,
-  suffix = '',
-}: {
-  value: string;
-  label: string;
-  suffix?: string;
-}) {
-  return (
-    <div className="flex flex-col items-center px-6">
       <span
-        className="text-4xl font-bold tracking-tight md:text-5xl"
-        style={{ color: 'var(--es-text-primary)', letterSpacing: '-2px' }}
+        className="inline-block h-2 w-2 rounded-full"
+        style={{ background: 'var(--es-on-primary)' }}
+      />
+      <span
+        className="text-xs font-semibold uppercase tracking-wider"
+        style={{ letterSpacing: '0.832px' }}
       >
-        {value}
-        {suffix}
-      </span>
-      <span className="mt-1 text-sm" style={{ color: 'var(--es-text-muted)' }}>
-        {label}
+        {children}
       </span>
     </div>
   );
@@ -291,128 +292,161 @@ function StatCounter({
 
 /* ─────────────────────────────────────────────────────────────
    Main HomePage
+   
+   Section coloring per DESIGN.md + user instructions:
+   ─ Hero:          dark forest (#031A10)
+   ─ Stats:         off-white (#F5F5F5)
+   ─ Features:      off-white (#F5F5F5) with white cards
+   ─ How It Works:  white (#FFFFFF)
+   ─ Testimonials:  off-white (#F5F5F5) with white cards
+   ─ CTA:           white (#FFFFFF)
+   ─ Footer:        dark forest (#031A10)
    ───────────────────────────────────────────────────────────── */
 export default function HomePage() {
   return (
-    <div style={{ background: 'var(--es-page-bg)', color: 'var(--es-text-primary)' }}>
+    <div>
       <Navbar />
 
-      {/* ── Hero Section ── */}
-      <section className="relative overflow-hidden pt-28 pb-20 md:pt-36 md:pb-28">
+      {/* ── HERO SECTION — dark forest bg ── */}
+      <section
+        className="relative overflow-hidden pt-32 pb-16 md:pt-40 md:pb-24"
+        style={{ background: '#031A10', color: '#FFFFFF' }}
+      >
         {/* Grid pattern background */}
         <div className="grid-pattern-subtle grid-fade-b absolute inset-0 -z-10" />
 
-        <div className="mx-auto max-w-5xl px-6 text-center">
-          {/* Badge */}
-          <div className="animate-fade-up mb-8 inline-flex items-center gap-2 rounded-full px-4 py-1.5"
-               style={{ border: '1px solid var(--es-border-subtle)', background: 'var(--es-panel-bg)' }}>
-            <span
-              className="text-[10.4px] font-semibold uppercase tracking-wider"
-              style={{ color: 'var(--es-text-secondary)', letterSpacing: '0.832px' }}
-            >
-              Built for AI-powered classrooms
-            </span>
-            <ChevronRight className="h-3 w-3" style={{ color: 'var(--es-text-muted)' }} />
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="flex flex-col items-center gap-12 md:flex-row md:items-center md:gap-16">
+            {/* Left text column */}
+            <div className="flex-1 text-left">
+              {/* Badge */}
+              <div className="animate-fade-up mb-6">
+                <SectionBadge>AI-Powered Classroom</SectionBadge>
+              </div>
+
+              {/* Headline */}
+              <h1
+                className="animate-fade-up animate-fade-up-d1 max-w-lg font-extrabold"
+                style={{
+                  fontSize: 'clamp(40px, 6vw, 72px)',
+                  lineHeight: '1.05',
+                  letterSpacing: '-1.52px',
+                  color: '#FFFFFF',
+                  fontFamily: 'var(--font-manrope)',
+                }}
+              >
+                The Future of
+                <br />
+                Classroom Learning
+              </h1>
+
+              {/* Subheading */}
+              <p
+                className="animate-fade-up animate-fade-up-d2 mt-6 max-w-md text-base md:text-lg"
+                style={{
+                  color: '#B2B2B2',
+                  lineHeight: '1.6',
+                  letterSpacing: 'normal',
+                }}
+              >
+                SonaAI brings an AI co-teacher into every live classroom.
+                Real-time voice transcripts, intelligent responses, and seamless
+                collaboration — all in one place.
+              </p>
+
+              {/* CTAs */}
+              <div className="animate-fade-up animate-fade-up-d3 mt-8 flex flex-col gap-3 sm:flex-row">
+                <motion.a
+                  href="/auth"
+                  className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3 text-base font-bold"
+                  whileHover={{ scale: 1.05, backgroundColor: '#bdec8a' }}
+                  transition={{ duration: 0.2 }}
+                  style={{
+                    background: 'var(--es-action-primary)',
+                    color: 'var(--es-on-primary)',
+                    letterSpacing: '-0.16px',
+                  }}
+                >
+                  Start Teaching
+                  <ArrowRight className="h-4 w-4" />
+                </motion.a>
+                <Link
+                  href="/auth"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg px-7 py-3 text-base font-medium transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+                  style={{
+                    color: '#FFFFFF',
+                    border: '1px solid #264348',
+                    letterSpacing: '-0.16px',
+                    background: 'transparent',
+                  }}
+                >
+                  Join as Student
+                </Link>
+              </div>
+
+            </div>
+
+            {/* Right visual — image */}
+            <div className="hidden flex-1 md:block">
+              <div
+                className="relative rounded-2xl overflow-hidden"
+                style={{
+                  border: '1px solid #264348',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
+                }}
+              >
+                <img src="/Hero-section.png" alt="Hero Interface" className="w-full h-auto object-cover" />
+              </div>
+            </div>
           </div>
 
-          {/* Headline */}
-          <h1
-            className="animate-fade-up animate-fade-up-d1 mx-auto max-w-4xl font-bold"
-            style={{
-              fontSize: 'clamp(40px, 7vw, 80px)',
-              lineHeight: '0.95',
-              letterSpacing: '-4px',
-              color: 'var(--es-text-primary)',
-            }}
-          >
-            The Future of
-            <br />
-            Classroom Learning
-          </h1>
-
-          {/* Subheading */}
-          <p
-            className="animate-fade-up animate-fade-up-d2 mx-auto mt-6 max-w-2xl text-lg md:text-xl"
-            style={{
-              color: 'var(--es-text-secondary)',
-              lineHeight: '27px',
-              letterSpacing: '-0.4px',
-            }}
-          >
-            SonaAI brings an AI co-teacher into every live classroom.
-            Real-time voice transcripts, intelligent responses, and seamless
-            collaboration — all in one place.
-          </p>
-
-          {/* CTAs */}
-          <div className="animate-fade-up animate-fade-up-d3 mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Link
-              href="/auth"
-              className="inline-flex items-center gap-2 rounded-full px-7 py-3 text-base font-semibold text-white transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
-              style={{
-                background: 'var(--es-action-primary)',
-                letterSpacing: '-0.32px',
-              }}
+          {/* Scroll to explore */}
+          <div className="mt-12 flex flex-col items-center gap-2">
+            <span
+              className="inline-block h-2 w-2 rounded-full animate-pulse-subtle"
+              style={{ background: 'var(--es-action-primary)' }}
+            />
+            <span className="text-xs" style={{ color: '#707070' }}>
+              Scroll to Explore
+            </span>
+            <div
+              className="flex h-8 w-5 items-start justify-center rounded-full pt-1.5"
+              style={{ border: '1.5px solid #264348' }}
             >
-              Start Teaching
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/auth"
-              className="inline-flex items-center gap-2 rounded-full px-7 py-3 text-base font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
-              style={{
-                color: 'var(--es-text-primary)',
-                border: '1px solid var(--es-border-subtle)',
-                letterSpacing: '-0.32px',
-              }}
-            >
-              Join as Student
-            </Link>
+              <div
+                className="h-1.5 w-1 rounded-full animate-scroll-bounce"
+                style={{ background: '#707070' }}
+              />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Stats Bar ── */}
-      <ScrollReveal animation="fade-up" as="section" className="py-16 md:py-20">
-        <div className="mx-auto max-w-4xl px-6">
-          <div
-            className="flex flex-col items-center justify-center gap-8 rounded-[var(--es-radius-2xl)] py-10 sm:flex-row sm:gap-0 sm:divide-x"
-            style={{
-              background: 'var(--es-panel-bg)',
-              border: '1px solid var(--es-border-subtle)',
-              boxShadow: 'var(--es-card-shadow)',
-            }}
-          >
-            <StatCounter value="50ms" label="Latency" />
-            <StatCounter value="99.9" label="Uptime" suffix="%" />
-            <StatCounter value="10K" label="Classrooms" suffix="+" />
-          </div>
-        </div>
-      </ScrollReveal>
-
-      {/* ── Features Section ── */}
-      <section id="features" className="py-20 md:py-28">
+      {/* ── Features Section — off-white bg, white cards ── */}
+      <section id="features" className="py-20 md:py-28" style={{ background: '#F5F5F5' }}>
         <div className="mx-auto max-w-6xl px-6">
           <ScrollReveal animation="fade-up" className="text-center mb-14">
-            <span
-              className="mb-3 inline-block text-[10.4px] font-semibold uppercase tracking-wider"
-              style={{ color: 'var(--es-text-muted)', letterSpacing: '0.832px' }}
-            >
-              Features
-            </span>
+            <SectionBadge>Features</SectionBadge>
             <h2
-              className="font-bold"
+              className="font-extrabold"
               style={{
-                fontSize: '36px',
-                lineHeight: '39.6px',
-                letterSpacing: '-1.44px',
-                color: 'var(--es-text-primary)',
+                fontSize: '48px',
+                lineHeight: '1.2',
+                letterSpacing: '-1.488px',
+                color: '#000000',
+                fontFamily: 'var(--font-manrope)',
               }}
             >
               Everything you need for
               <br />
               smarter classrooms
             </h2>
+            <p
+              className="mt-4 mx-auto max-w-lg text-base"
+              style={{ color: '#707070' }}
+            >
+              Choose a learning track tailored to your goals and interests
+            </p>
           </ScrollReveal>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -462,27 +496,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── How It Works ── */}
-      <section
-        id="how-it-works"
-        className="py-20 md:py-28"
-        style={{ background: 'var(--es-panel-bg)' }}
-      >
+      {/* ── How It Works — white bg ── */}
+      <section id="how-it-works" className="py-20 md:py-28" style={{ background: '#FFFFFF' }}>
         <div className="mx-auto max-w-5xl px-6">
           <ScrollReveal animation="fade-up" className="text-center mb-16">
-            <span
-              className="mb-3 inline-block text-[10.4px] font-semibold uppercase tracking-wider"
-              style={{ color: 'var(--es-text-muted)', letterSpacing: '0.832px' }}
-            >
-              How It Works
-            </span>
+            <SectionBadge>How It Works</SectionBadge>
             <h2
-              className="font-bold"
+              className="font-extrabold"
               style={{
-                fontSize: '36px',
-                lineHeight: '39.6px',
-                letterSpacing: '-1.44px',
-                color: 'var(--es-text-primary)',
+                fontSize: '48px',
+                lineHeight: '1.2',
+                letterSpacing: '-1.488px',
+                color: '#000000',
+                fontFamily: 'var(--font-manrope)',
               }}
             >
               Three steps to a smarter classroom
@@ -493,7 +519,7 @@ export default function HomePage() {
             {/* Connecting line (desktop only) */}
             <div
               className="absolute top-7 left-[20%] right-[20%] hidden h-[1px] md:block"
-              style={{ background: 'var(--es-border-subtle)' }}
+              style={{ background: 'rgba(0,0,0,0.1)' }}
             />
 
             <ScrollReveal animation="scale-in" delay={0}>
@@ -521,133 +547,124 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
-      <section id="testimonials" className="py-20 md:py-28">
-        <div className="mx-auto max-w-5xl px-6">
-          <ScrollReveal animation="fade-up" className="text-center mb-14">
-            <span
-              className="mb-3 inline-block text-[10.4px] font-semibold uppercase tracking-wider"
-              style={{ color: 'var(--es-text-muted)', letterSpacing: '0.832px' }}
-            >
-              Testimonials
-            </span>
-            <h2
-              className="font-bold"
-              style={{
-                fontSize: '36px',
-                lineHeight: '39.6px',
-                letterSpacing: '-1.44px',
-                color: 'var(--es-text-primary)',
-              }}
-            >
-              Loved by educators
-            </h2>
-          </ScrollReveal>
+      <FAQAccordion />
+      <TestimonialSlider />
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <ScrollReveal animation="slide-left" delay={0}>
-              <TestimonialCard
-                quote="SonaAI transformed how I run my physics lectures. The AI picks up on student questions I might miss, and the end-of-class summary saves me hours of note-taking."
-                name="Dr. Sarah Mitchell"
-                role="Physics Professor, Stanford"
-                initials="SM"
-              />
-            </ScrollReveal>
-            <ScrollReveal animation="slide-right" delay={100}>
-              <TestimonialCard
-                quote="As a student, the real-time transcript is a game-changer. I can focus on understanding concepts instead of frantically taking notes. The AI even answers follow-up questions."
-                name="James Chen"
-                role="Graduate Student, MIT"
-                initials="JC"
-              />
-            </ScrollReveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA Section ── */}
+      {/* ── CTA Section — white bg ── */}
       <ScrollReveal animation="blur-in" as="section">
-        <div
-          className="py-20 md:py-28"
-          style={{ background: 'var(--es-panel-bg-2)' }}
-        >
+        <div className="py-20 md:py-28" style={{ background: '#FFFFFF' }}>
           <div className="mx-auto max-w-3xl px-6 text-center">
             <h2
-              className="mb-4 font-bold"
+              className="mb-4 font-extrabold"
               style={{
-                fontSize: '36px',
-                lineHeight: '39.6px',
-                letterSpacing: '-1.44px',
-                color: 'var(--es-text-primary)',
+                fontSize: '48px',
+                lineHeight: '1.2',
+                letterSpacing: '-1.488px',
+                color: '#000000',
+                fontFamily: 'var(--font-manrope)',
               }}
             >
               Ready to transform your classroom?
             </h2>
             <p
               className="mb-8 text-lg"
-              style={{ color: 'var(--es-text-secondary)', letterSpacing: '-0.4px' }}
+              style={{ color: '#707070', letterSpacing: 'normal' }}
             >
               Get started in under 30 seconds. No credit card required.
             </p>
-            <Link
+            <motion.a
               href="/auth"
-              className="inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-base font-semibold text-white transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+              className="inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-base font-bold"
+              whileHover={{ scale: 1.05, backgroundColor: '#bdec8a' }}
+              transition={{ duration: 0.2 }}
               style={{
                 background: 'var(--es-action-primary)',
-                letterSpacing: '-0.32px',
+                color: 'var(--es-on-primary)',
+                letterSpacing: '-0.16px',
               }}
             >
               Get Started Free
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </motion.a>
           </div>
         </div>
       </ScrollReveal>
 
-      {/* ── Footer ── */}
-      <footer style={{ background: 'var(--es-footer-bg)' }}>
-        <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-          <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-            {/* Logo + tagline */}
+      {/* ── Footer — dark forest bg ── */}
+      <footer style={{ background: '#031A10' }}>
+        {/* Top divider */}
+        <div
+          className="h-px w-full"
+          style={{ background: 'linear-gradient(to right, transparent, #264348, transparent)' }}
+        />
+
+        <div className="mx-auto max-w-6xl px-6 py-16 md:py-20">
+          <div className="flex flex-col gap-12 md:flex-row md:justify-between">
+            {/* Logo + tagline + newsletter */}
             <div className="max-w-xs">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div
-                  className="flex h-7 w-7 items-center justify-center rounded-md"
-                  style={{ background: 'var(--es-action-primary)' }}
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-white" />
-                </div>
+              <div className="flex items-center gap-2.5 mb-4">
+                <img src="/SonaAI%20icon1.png" alt="SonaAI Logo" className="h-10 w-10 object-contain bg-white p-1" style={{ borderRadius: '12px' }} />
                 <span
-                  className="text-base font-semibold"
-                  style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.32px' }}
+                  className="text-xl font-bold"
+                  style={{
+                    color: '#FFFFFF',
+                    letterSpacing: '-0.32px',
+                    fontFamily: 'var(--font-manrope)',
+                  }}
                 >
                   SonaAI
                 </span>
               </div>
               <p
-                className="text-sm leading-relaxed"
-                style={{ color: 'var(--es-text-muted)', letterSpacing: '-0.16px' }}
+                className="text-sm leading-relaxed mb-6"
+                style={{ color: '#707070' }}
               >
-                AI-powered live classrooms for the next generation of education.
+                Empowering education through AI-powered live classrooms. Join thousands of educators teaching with confidence.
               </p>
+
+              {/* Newsletter */}
+              <div
+                className="flex rounded-lg overflow-hidden"
+                style={{ border: '1px solid #264348' }}
+              >
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="flex-1 bg-transparent px-4 py-2.5 text-sm outline-none"
+                  style={{ color: '#FFFFFF' }}
+                />
+                <button
+                  type="button"
+                  className="px-4 py-2.5 text-sm font-semibold transition-all duration-200 hover:opacity-90"
+                  style={{
+                    background: 'var(--es-action-primary)',
+                    color: 'var(--es-on-primary)',
+                  }}
+                >
+                  Subscribe
+                </button>
+              </div>
             </div>
 
-            {/* Nav columns */}
-            <div className="flex gap-16">
+            {/* Link columns */}
+            <div className="flex flex-wrap gap-16">
               <div>
                 <h4
-                  className="mb-3 text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: 'var(--es-text-muted)', letterSpacing: '0.832px' }}
+                  className="mb-4 text-sm font-semibold"
+                  style={{
+                    color: '#FFFFFF',
+                    fontFamily: 'var(--font-manrope)',
+                  }}
                 >
-                  Product
+                  Quick Links
                 </h4>
-                <ul className="space-y-2">
-                  {['Features', 'Pricing', 'Documentation'].map((item) => (
+                <ul className="space-y-2.5">
+                  {['Home', 'Features', 'How It Works', 'Pricing'].map((item) => (
                     <li key={item}>
                       <a
                         href="#"
-                        className="text-sm transition-colors hover:opacity-70"
-                        style={{ color: 'var(--es-text-secondary)' }}
+                        className="text-sm transition-colors duration-200 hover:text-white"
+                        style={{ color: '#707070' }}
                       >
                         {item}
                       </a>
@@ -657,18 +674,45 @@ export default function HomePage() {
               </div>
               <div>
                 <h4
-                  className="mb-3 text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: 'var(--es-text-muted)', letterSpacing: '0.832px' }}
+                  className="mb-4 text-sm font-semibold"
+                  style={{
+                    color: '#FFFFFF',
+                    fontFamily: 'var(--font-manrope)',
+                  }}
                 >
-                  Company
+                  Authentication
                 </h4>
-                <ul className="space-y-2">
-                  {['About', 'Blog', 'Contact'].map((item) => (
+                <ul className="space-y-2.5">
+                  {['Login', 'Sign Up'].map((item) => (
+                    <li key={item}>
+                      <Link
+                        href="/auth"
+                        className="text-sm transition-colors duration-200 hover:text-white"
+                        style={{ color: '#707070' }}
+                      >
+                        {item}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4
+                  className="mb-4 text-sm font-semibold"
+                  style={{
+                    color: '#FFFFFF',
+                    fontFamily: 'var(--font-manrope)',
+                  }}
+                >
+                  Other Pages
+                </h4>
+                <ul className="space-y-2.5">
+                  {['Contact', 'Dashboard', 'Blog'].map((item) => (
                     <li key={item}>
                       <a
                         href="#"
-                        className="text-sm transition-colors hover:opacity-70"
-                        style={{ color: 'var(--es-text-secondary)' }}
+                        className="text-sm transition-colors duration-200 hover:text-white"
+                        style={{ color: '#707070' }}
                       >
                         {item}
                       </a>
@@ -681,25 +725,23 @@ export default function HomePage() {
 
           {/* Bottom bar */}
           <div
-            className="mt-10 flex flex-col items-center justify-between gap-3 border-t pt-6 sm:flex-row"
-            style={{ borderColor: 'var(--es-border-subtle)' }}
+            className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-8 sm:flex-row"
+            style={{ borderColor: '#264348' }}
           >
-            <p className="text-xs" style={{ color: 'var(--es-text-muted)' }}>
+            <p className="text-xs" style={{ color: '#707070' }}>
               &copy; {new Date().getFullYear()} SonaAI. All rights reserved.
             </p>
-            <div className="flex items-center gap-2">
-              <span className="text-xs" style={{ color: 'var(--es-text-muted)' }}>
-                Powered by
-              </span>
-              <a
-                href="https://agora.io/en/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-medium transition-opacity hover:opacity-70"
-                style={{ color: 'var(--es-text-secondary)' }}
-              >
-                Agora
-              </a>
+            <div className="flex items-center gap-6">
+              {['Facebook', 'Instagram', 'LinkedIn', 'X (Twitter)'].map((social) => (
+                <a
+                  key={social}
+                  href="#"
+                  className="text-xs transition-colors duration-200 hover:text-white"
+                  style={{ color: '#707070' }}
+                >
+                  {social}
+                </a>
+              ))}
             </div>
           </div>
         </div>

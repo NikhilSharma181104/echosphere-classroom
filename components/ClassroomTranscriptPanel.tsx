@@ -9,7 +9,7 @@ type TranscriptMessage = {
   createdAt?: number;
 };
 
-type QuickstartTranscriptPanelProps = {
+export type ClassroomTranscriptPanelProps = {
   messageList: TranscriptMessage[];
   currentInProgressMessage: TranscriptMessage | null;
   agentUID: string;
@@ -23,11 +23,11 @@ function formatMessageTime(createdAt?: number) {
   }).format(new Date(createdAt));
 }
 
-export function QuickstartTranscriptPanel({
+export function ClassroomTranscriptPanel({
   messageList,
   currentInProgressMessage,
   agentUID,
-}: QuickstartTranscriptPanelProps) {
+}: ClassroomTranscriptPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const messages = useMemo(
     () =>
@@ -45,11 +45,10 @@ export function QuickstartTranscriptPanel({
 
   return (
     <section
-      className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[var(--es-radius-lg)]"
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl"
       style={{
-        background: 'var(--es-page-bg)',
+        background: 'var(--es-panel-bg)',
         border: '1px solid var(--es-border-subtle)',
-        boxShadow: 'var(--es-card-shadow)',
       }}
       aria-label="Transcription panel"
     >
@@ -61,7 +60,11 @@ export function QuickstartTranscriptPanel({
         <div>
           <h2
             className="text-sm font-semibold"
-            style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.16px' }}
+            style={{
+              color: 'var(--es-text-primary)',
+              letterSpacing: '-0.16px',
+              fontFamily: 'var(--font-manrope)',
+            }}
           >
             Transcript
           </h2>
@@ -81,9 +84,12 @@ export function QuickstartTranscriptPanel({
         <div className="flex items-center gap-1.5">
           <span
             className="inline-block h-2 w-2 rounded-full animate-pulse-subtle"
-            style={{ background: '#22c55e' }}
+            style={{ background: 'var(--es-action-primary)' }}
           />
-          <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--es-text-muted)' }}>
+          <span
+            className="text-[10px] font-medium uppercase tracking-wider"
+            style={{ color: 'var(--es-text-muted)' }}
+          >
             Live
           </span>
         </div>
@@ -96,7 +102,10 @@ export function QuickstartTranscriptPanel({
       >
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center">
-            <p className="text-sm" style={{ color: 'var(--es-text-muted)', letterSpacing: '-0.16px' }}>
+            <p
+              className="text-sm"
+              style={{ color: 'var(--es-text-muted)', letterSpacing: 'normal' }}
+            >
               Start speaking to see the live transcript here.
             </p>
           </div>
@@ -117,17 +126,19 @@ export function QuickstartTranscriptPanel({
               >
                 {/* Avatar */}
                 <div
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
                   style={{
                     background: isAgent ? 'var(--es-action-primary)' : 'var(--es-panel-bg-2)',
-                    color: isAgent ? '#ffffff' : 'var(--es-text-primary)',
+                    color: isAgent ? 'var(--es-on-primary)' : 'var(--es-text-primary)',
                   }}
                 >
                   {initials}
                 </div>
 
                 {/* Bubble */}
-                <div className={`flex max-w-[85%] flex-col ${isAgent ? 'items-start' : 'items-end'}`}>
+                <div
+                  className={`flex max-w-[85%] flex-col ${isAgent ? 'items-start' : 'items-end'}`}
+                >
                   <div className="mb-1 flex items-center gap-2 px-0.5">
                     <span
                       className="text-[11px] font-semibold"
@@ -145,11 +156,11 @@ export function QuickstartTranscriptPanel({
                     )}
                   </div>
                   <div
-                    className="whitespace-pre-wrap rounded-[var(--es-radius-md)] px-3 py-2 text-[13px] leading-[20px]"
+                    className="whitespace-pre-wrap rounded-xl px-3 py-2 text-[13px] leading-[20px]"
                     style={{
                       background: isAgent ? 'var(--es-panel-bg-2)' : 'var(--es-action-primary)',
-                      color: isAgent ? 'var(--es-text-primary)' : '#ffffff',
-                      letterSpacing: '-0.16px',
+                      color: isAgent ? 'var(--es-text-primary)' : 'var(--es-on-primary)',
+                      letterSpacing: 'normal',
                     }}
                   >
                     {text || '…'}

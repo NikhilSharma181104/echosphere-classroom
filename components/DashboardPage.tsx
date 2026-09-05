@@ -1,28 +1,12 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Sparkles,
-  Plus,
-  ArrowRight,
-  Copy,
-  Check,
-  LogOut,
-  BookOpen,
-  Clock,
-  Settings,
-  RefreshCw,
-  Users,
-  Calendar,
-} from 'lucide-react';
+import { Sparkles, LogOut } from 'lucide-react';
 import type { UserRole } from '@/types/conversation';
-
-/** Generate a random 6-character alphanumeric classroom code. */
-function generateClassroomCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+import TeacherDashboard from './TeacherDashboard';
+import StudentDashboard from './StudentDashboard';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -50,13 +34,6 @@ export default function DashboardPage() {
   const [session, setSession] = useState<SessionData | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  // Teacher state
-  const [classroomCode, setClassroomCode] = useState('');
-  const [codeCopied, setCodeCopied] = useState(false);
-
-  // Student state
-  const [studentCode, setStudentCode] = useState('');
-
   useEffect(() => {
     setMounted(true);
     const stored = sessionStorage.getItem('echosphere_session');
@@ -64,9 +41,6 @@ export default function DashboardPage() {
       try {
         const parsed = JSON.parse(stored);
         setSession({ name: parsed.name, role: parsed.role });
-        if (parsed.role === 'teacher') {
-          setClassroomCode(generateClassroomCode());
-        }
       } catch {
         router.push('/auth');
       }
@@ -74,48 +48,6 @@ export default function DashboardPage() {
       router.push('/auth');
     }
   }, [router]);
-
-  const handleCopyCode = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(classroomCode);
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 2000);
-    } catch {
-      // Clipboard API not available
-    }
-  }, [classroomCode]);
-
-  const handleRegenerateCode = useCallback(() => {
-    setClassroomCode(generateClassroomCode());
-    setCodeCopied(false);
-  }, []);
-
-  const handleStartTeaching = useCallback(() => {
-    if (!session || !classroomCode) return;
-    // Pass session data to meeting page via sessionStorage
-    sessionStorage.setItem(
-      'echosphere_meeting',
-      JSON.stringify({
-        name: session.name,
-        role: session.role,
-        classroomCode,
-      }),
-    );
-    router.push('/meeting');
-  }, [session, classroomCode, router]);
-
-  const handleJoinAsStudent = useCallback(() => {
-    if (!session || !studentCode.trim()) return;
-    sessionStorage.setItem(
-      'echosphere_meeting',
-      JSON.stringify({
-        name: session.name,
-        role: session.role,
-        classroomCode: studentCode.trim().toUpperCase(),
-      }),
-    );
-    router.push('/meeting');
-  }, [session, studentCode, router]);
 
   const handleSignOut = useCallback(() => {
     sessionStorage.removeItem('echosphere_session');
@@ -144,51 +76,76 @@ export default function DashboardPage() {
     .slice(0, 2);
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--es-panel-bg)' }}>
-      {/* Top bar */}
-      <header
-        className="sticky top-0 z-40"
-        style={{
-          background: 'var(--es-page-bg)',
-          borderBottom: '1px solid var(--es-border-subtle)',
-        }}
-      >
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ background: 'var(--es-action-primary)' }}
-            >
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-            <span
-              className="text-lg font-semibold tracking-tight"
-              style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.32px' }}
-            >
-              SonaAI
-            </span>
-          </Link>
+    <div
+      className="h-[100dvh] w-full overflow-hidden bg-cover bg-center bg-no-repeat bg-fixed flex flex-col relative"
+      style={{ backgroundImage: 'url("/Teacher-Dashboard.png")' }}
+    >
+      {/* Top bar (Floating Layout) */}
+      <div className="absolute top-6 left-0 right-0 z-50 px-4 md:px-8 flex items-center justify-between">
+        
+        {/* Logo (Far Left) */}
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <img src="/SonaAI%20icon1.png" alt="SonaAI Logo" className="h-9 w-9 object-contain bg-white p-1" style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
+          <span
+            className="text-xl font-extrabold tracking-tight"
+            style={{
+              color: '#031A10',
+              fontFamily: 'var(--font-manrope)',
+            }}
+          >
+            SonaAI
+          </span>
+        </Link>
 
-          <div className="flex items-center gap-4">
+        {/* Floating Nav Pill (Center & Profile) */}
+        <header
+          className="flex items-center gap-6 rounded-[20px] px-3 py-2.5 backdrop-blur-md transition-all duration-300"
+          style={{
+            background: 'rgba(3, 26, 16, 0.85)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          }}
+        >
+          {/* Center Nav Links */}
+          <div className="hidden items-center gap-6 md:flex pl-4 pr-2">
+            {[
+              { label: 'Dashboard', active: true },
+              { label: 'Classes', active: false },
+              { label: 'History', active: false },
+              { label: 'Settings', active: false },
+            ].map((item) => (
+              <a
+                key={item.label}
+                href="#"
+                className="group relative text-sm font-semibold transition-colors duration-200 hover:text-white"
+                style={{
+                  color: item.active ? '#D0FFA2' : 'rgba(255,255,255,0.7)',
+                  fontFamily: 'var(--font-manrope)',
+                }}
+              >
+                {item.label}
+                <span className="absolute -bottom-1 left-0 h-[1.5px] w-full origin-left scale-x-0 bg-current transition-transform duration-300 ease-out group-hover:scale-x-100" />
+              </a>
+            ))}
+          </div>
+          
+          {/* Divider */}
+          <div className="w-px h-6 bg-white/20 hidden md:block"></div>
+
+          <div className="flex items-center gap-3 pl-1 pr-2">
             {/* User avatar + info */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <div className="hidden sm:flex flex-col items-end">
-                <span
-                  className="text-sm font-medium"
-                  style={{ color: 'var(--es-text-primary)' }}
-                >
+                <span className="text-sm font-semibold text-white leading-tight">
                   {session.name}
                 </span>
-                <span
-                  className="text-xs capitalize"
-                  style={{ color: 'var(--es-text-muted)' }}
-                >
+                <span className="text-[10px] uppercase font-bold text-white/60 tracking-wider">
                   {session.role}
                 </span>
               </div>
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold text-white"
-                style={{ background: 'var(--es-action-primary)' }}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold shadow-md"
+                style={{ background: '#D0FFA2', color: '#031A10' }}
               >
                 {initials}
               </div>
@@ -197,344 +154,22 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 hover:opacity-70"
-              style={{
-                color: 'var(--es-text-muted)',
-                border: '1px solid var(--es-border-subtle)',
-              }}
+              className="flex items-center justify-center rounded-full p-2 transition-colors duration-200 hover:bg-white/10"
+              style={{ color: '#FFFFFF' }}
+              title="Sign Out"
             >
-              <LogOut className="h-3 w-3" />
-              <span className="hidden sm:inline">Sign Out</span>
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
-      {/* Main content */}
-      <main className="mx-auto max-w-6xl px-6 py-8 md:py-12">
-        {/* Greeting */}
-        <div className="animate-slide-up-enter mb-10">
-          <h1
-            className="text-3xl font-bold md:text-4xl"
-            style={{
-              color: 'var(--es-text-primary)',
-              letterSpacing: '-1.44px',
-              lineHeight: '1.1',
-            }}
-          >
-            {getGreeting()}, {session.name}
-          </h1>
-          <p
-            className="mt-2 text-base"
-            style={{ color: 'var(--es-text-muted)', letterSpacing: '-0.16px' }}
-          >
-            {formatDate()}
-          </p>
-        </div>
-
+      {/* Main content - Centered within the viewport below the navbar */}
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-8 pt-32 pb-6 overflow-hidden flex flex-col">
         {session.role === 'teacher' ? (
-          /* ── Teacher Dashboard ── */
-          <div className="space-y-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
-            {/* Start New Class Card */}
-            <div
-              className="rounded-[var(--es-radius-xl)] p-6 md:p-8"
-              style={{
-                background: 'var(--es-page-bg)',
-                border: '1px solid var(--es-border-subtle)',
-                boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
-              }}
-            >
-              <div className="flex items-start gap-4 mb-6">
-                <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--es-radius-sm)]"
-                  style={{ background: 'var(--es-panel-bg-2)' }}
-                >
-                  <Plus className="h-5 w-5" style={{ color: 'var(--es-text-primary)' }} />
-                </div>
-                <div>
-                  <h2
-                    className="text-xl font-semibold"
-                    style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.16px' }}
-                  >
-                    Start New Class
-                  </h2>
-                  <p
-                    className="mt-1 text-sm"
-                    style={{ color: 'var(--es-text-muted)', letterSpacing: '-0.16px' }}
-                  >
-                    Share this code with your students to get started
-                  </p>
-                </div>
-              </div>
-
-              {/* Classroom code display */}
-              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div
-                  className="flex-1 rounded-[var(--es-radius-md)] px-6 py-4 text-center"
-                  style={{
-                    background: 'var(--es-panel-bg-2)',
-                    border: '1px solid var(--es-border-subtle)',
-                  }}
-                >
-                  <p
-                    className="text-xs font-medium uppercase tracking-wider mb-1"
-                    style={{ color: 'var(--es-text-muted)', letterSpacing: '0.832px' }}
-                  >
-                    Classroom Code
-                  </p>
-                  <p
-                    className="text-3xl font-bold tracking-[0.2em] md:text-4xl"
-                    style={{
-                      color: 'var(--es-text-primary)',
-                      fontFamily: 'var(--font-inter), monospace',
-                    }}
-                  >
-                    {classroomCode}
-                  </p>
-                </div>
-
-                <div className="flex gap-2 sm:flex-col">
-                  <button
-                    type="button"
-                    onClick={handleCopyCode}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--es-radius-sm)] px-4 py-2.5 text-xs font-medium transition-all duration-200 hover:opacity-80"
-                    style={{
-                      border: '1px solid var(--es-border-subtle)',
-                      color: 'var(--es-text-secondary)',
-                      background: 'var(--es-page-bg)',
-                    }}
-                  >
-                    {codeCopied ? (
-                      <>
-                        <Check className="h-3.5 w-3.5" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3.5 w-3.5" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRegenerateCode}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--es-radius-sm)] px-4 py-2.5 text-xs font-medium transition-all duration-200 hover:opacity-80"
-                    style={{
-                      border: '1px solid var(--es-border-subtle)',
-                      color: 'var(--es-text-secondary)',
-                      background: 'var(--es-page-bg)',
-                    }}
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    New Code
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleStartTeaching}
-                className="flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
-                style={{
-                  background: 'var(--es-action-primary)',
-                  letterSpacing: '-0.32px',
-                }}
-              >
-                Start Teaching
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              {[
-                { icon: BookOpen, label: 'Create Room', desc: 'New classroom session', active: true },
-                { icon: Clock, label: 'View History', desc: 'Past sessions', active: false },
-                { icon: Settings, label: 'Settings', desc: 'Preferences', active: false },
-              ].map(({ icon: Icon, label, desc, active }) => (
-                <button
-                  key={label}
-                  type="button"
-                  disabled={!active}
-                  onClick={active ? handleStartTeaching : undefined}
-                  className="flex items-center gap-3 rounded-[var(--es-radius-md)] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0"
-                  style={{
-                    background: 'var(--es-page-bg)',
-                    border: '1px solid var(--es-border-subtle)',
-                    boxShadow: 'var(--es-card-shadow)',
-                  }}
-                >
-                  <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px]"
-                    style={{ background: 'var(--es-panel-bg-2)' }}
-                  >
-                    <Icon className="h-4 w-4" style={{ color: 'var(--es-text-primary)' }} />
-                  </div>
-                  <div>
-                    <p
-                      className="text-sm font-semibold"
-                      style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.16px' }}
-                    >
-                      {label}
-                    </p>
-                    <p className="text-xs" style={{ color: 'var(--es-text-muted)' }}>
-                      {desc}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Recent Sessions */}
-            <div
-              className="rounded-[var(--es-radius-xl)] p-6"
-              style={{
-                background: 'var(--es-page-bg)',
-                border: '1px solid var(--es-border-subtle)',
-                boxShadow: 'var(--es-card-shadow)',
-              }}
-            >
-              <h3
-                className="mb-4 text-lg font-semibold"
-                style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.16px' }}
-              >
-                Recent Sessions
-              </h3>
-              <div className="flex flex-col items-center py-10 text-center">
-                <Calendar className="mb-3 h-10 w-10" style={{ color: 'var(--es-border-subtle)' }} />
-                <p className="text-sm" style={{ color: 'var(--es-text-muted)' }}>
-                  No sessions yet. Start your first class to see it here.
-                </p>
-              </div>
-            </div>
-          </div>
+          <TeacherDashboard session={session} />
         ) : (
-          /* ── Student Dashboard ── */
-          <div className="space-y-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
-            {/* Join a Class Card */}
-            <div
-              className="rounded-[var(--es-radius-xl)] p-6 md:p-8"
-              style={{
-                background: 'var(--es-page-bg)',
-                border: '1px solid var(--es-border-subtle)',
-                boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
-              }}
-            >
-              <div className="flex items-start gap-4 mb-6">
-                <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--es-radius-sm)]"
-                  style={{ background: 'var(--es-panel-bg-2)' }}
-                >
-                  <Users className="h-5 w-5" style={{ color: 'var(--es-text-primary)' }} />
-                </div>
-                <div>
-                  <h2
-                    className="text-xl font-semibold"
-                    style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.16px' }}
-                  >
-                    Join a Class
-                  </h2>
-                  <p
-                    className="mt-1 text-sm"
-                    style={{ color: 'var(--es-text-muted)', letterSpacing: '-0.16px' }}
-                  >
-                    Enter the 6-character code from your teacher
-                  </p>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <input
-                  type="text"
-                  value={studentCode}
-                  onChange={(e) =>
-                    setStudentCode(e.target.value.toUpperCase().replace(/\s/g, ''))
-                  }
-                  placeholder="A1B2C3"
-                  autoComplete="off"
-                  maxLength={6}
-                  className="w-full rounded-[var(--es-radius-md)] px-6 py-4 text-center text-3xl font-bold uppercase tracking-[0.2em] outline-none transition-all duration-200 md:text-4xl"
-                  style={{
-                    border: '1px solid var(--es-border-subtle)',
-                    background: 'var(--es-panel-bg-2)',
-                    color: 'var(--es-text-primary)',
-                    fontFamily: 'var(--font-inter), monospace',
-                    letterSpacing: '0.2em',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--es-action-primary)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--es-border-subtle)';
-                  }}
-                  aria-label="Classroom code"
-                  aria-required="true"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={handleJoinAsStudent}
-                disabled={studentCode.trim().length < 4}
-                className="flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:hover:scale-100"
-                style={{
-                  background: 'var(--es-action-primary)',
-                  letterSpacing: '-0.32px',
-                }}
-              >
-                Join Classroom
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Your Classes + Upcoming */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <div
-                className="rounded-[var(--es-radius-xl)] p-6"
-                style={{
-                  background: 'var(--es-page-bg)',
-                  border: '1px solid var(--es-border-subtle)',
-                  boxShadow: 'var(--es-card-shadow)',
-                }}
-              >
-                <h3
-                  className="mb-4 text-lg font-semibold"
-                  style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.16px' }}
-                >
-                  Your Classes
-                </h3>
-                <div className="flex flex-col items-center py-8 text-center">
-                  <BookOpen className="mb-3 h-8 w-8" style={{ color: 'var(--es-border-subtle)' }} />
-                  <p className="text-sm" style={{ color: 'var(--es-text-muted)' }}>
-                    No classes joined yet
-                  </p>
-                </div>
-              </div>
-
-              <div
-                className="rounded-[var(--es-radius-xl)] p-6"
-                style={{
-                  background: 'var(--es-page-bg)',
-                  border: '1px solid var(--es-border-subtle)',
-                  boxShadow: 'var(--es-card-shadow)',
-                }}
-              >
-                <h3
-                  className="mb-4 text-lg font-semibold"
-                  style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.16px' }}
-                >
-                  Upcoming
-                </h3>
-                <div className="flex flex-col items-center py-8 text-center">
-                  <Calendar className="mb-3 h-8 w-8" style={{ color: 'var(--es-border-subtle)' }} />
-                  <p className="text-sm" style={{ color: 'var(--es-text-muted)' }}>
-                    No upcoming sessions
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <StudentDashboard session={session} />
         )}
       </main>
     </div>

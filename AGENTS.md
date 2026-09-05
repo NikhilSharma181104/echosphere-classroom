@@ -60,11 +60,11 @@ The sections below (Start Here, Patterns, Anti-Patterns, etc.) remain the canoni
 - `app/api/invite-agent/route.ts`: starts the managed agent session; edit here for system prompt, VAD, model, or voice changes.
 - `app/api/stop-conversation/route.ts`: stops the agent session.
 - `app/api/chat/completions/route.ts`: optional OpenAI-compatible SSE proxy for a custom LLM (not wired by default).
-- `components/LandingPage.tsx`: session bootstrap, RTM setup, provider wiring, and conversation lifecycle.
+- `components/MeetingPage.tsx`: session bootstrap, RTM setup, provider wiring, and conversation lifecycle.
 - `components/ConversationComponent.tsx`: RTC join, mic publication, `AgoraVoiceAI` init, transcript state, and renewals.
-- `components/QuickstartConversationLayout.tsx`: in-call header, transcript rail, and controls dock.
-- `components/QuickstartPipelineMetrics.tsx`: per-stage latency chips from `AGENT_METRICS`.
-- `components/QuickstartTranscriptPanel.tsx`: live transcript rail.
+- `components/ClassroomConversationLayout.tsx`: in-call header, transcript rail, and controls dock.
+- `components/ClassroomPipelineMetrics.tsx`: per-stage latency chips from `AGENT_METRICS`.
+- `components/ClassroomTranscriptPanel.tsx`: live transcript rail.
 - `lib/agora.ts`: shared agent UID defaults.
 - `lib/conversation.ts`: transcript normalization and visualizer state mapping.
 - `env.local.example`: local environment template.
@@ -115,7 +115,7 @@ useEffect(() => {
 ### Transcript and UI Mapping
 
 - Manage `transcript` and `agentState` through `useState` plus `ai.on(TRANSCRIPT_UPDATED, ...)` and `ai.on(AGENT_STATE_CHANGED, ...)`.
-- The toolkit uses `uid="0"` as a sentinel for the local user's speech. Remap that value to `client.uid` before passing messages into `QuickstartTranscriptPanel`, or user speech renders on the agent side.
+- The toolkit uses `uid="0"` as a sentinel for the local user's speech. Remap that value to `client.uid` before passing messages into `ClassroomTranscriptPanel`, or user speech renders on the agent side.
 - Include `INTERRUPTED` turns in `messageList`; filter only `IN_PROGRESS`. If the agent's first turn is interrupted and omitted, `messageList` stays empty and the transcript panel never shows that first turn.
 
 ### Tokens and Styling

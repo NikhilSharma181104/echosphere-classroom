@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { AgoraClient, Area } from 'agora-agents';
 import { SUMMARY_PROMPT } from '@/lib/prompts';
 
@@ -6,6 +6,10 @@ export interface InjectThinkRequest {
   agent_id: string;
   /** The text to inject into the agent pipeline. Defaults to SUMMARY_PROMPT if omitted. */
   text?: string;
+  /**
+   * The full compiled transcript to be prepended to the summary prompt.
+   */
+  transcriptLog?: string;
   /**
    * Whether the injected think can be interrupted by incoming speech.
    * Defaults to true for chat messages; pass false for summary generation so
@@ -17,7 +21,7 @@ export interface InjectThinkRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: InjectThinkRequest = await request.json();
-    const { agent_id, text, interruptable = true } = body;
+    const { agent_id, text, transcriptLog, interruptable = true } = body;
 
     if (!agent_id) {
       return NextResponse.json(
@@ -26,7 +30,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const promptText = text?.trim() || SUMMARY_PROMPT;
+    const basePrompt = text?.trim() || SUMMARY_PROMPT;
+    const promptText = transcriptLog 
+      ? `Here is the full transcript of the class:\n\n${transcriptLog}\n\n${basePrompt}`
+      : basePrompt;
 
     if (!promptText) {
       return NextResponse.json(

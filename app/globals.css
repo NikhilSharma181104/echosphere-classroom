@@ -1,178 +1,119 @@
-﻿@tailwind base;
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════
-   SonaAI Design Tokens (from DESIGN.md)
-   Monochrome palette — near-black on white, Inter + Geist Mono
+   SonaAI Design Tokens — DESIGN.md (Multilingo-inspired)
+   Dark forest-green base + Verdant Lime accent
+   Manrope display / Inter body / system nav
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── SonaAI palette ── */
-  --es-page-bg: #ffffff;
-  --es-footer-bg: #f7f7f7;
-  --es-panel-bg: #fbfbfb;
-  --es-panel-bg-2: #f5f5f5;
-  --es-action-primary: #171717;
-  --es-text-muted: #737373;
-  --es-text-primary: #171717;
-  --es-text-secondary: #525252;
-  --es-border-subtle: #e5e5e5;
-  --es-glow-green: rgba(52, 211, 153, 0.45);
+  /* ── Brand palette ── */
+  --es-page-bg: #031A10;
+  --es-footer-bg: #021510;
+  --es-panel-bg: #052329;
+  --es-panel-bg-2: #102C32;
+  --es-action-primary: #D0FFA2;
+  --es-on-primary: #031A10;
+  --es-text-primary: #FFFFFF;
+  --es-text-secondary: #B2B2B2;
+  --es-text-muted: #707070;
+  --es-border-subtle: #264348;
+  --es-surface-white: #FFFFFF;
+  --es-surface-muted: #F5F5F5;
 
-  /* ── Shadows ── */
-  --es-card-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.04);
-  --es-input-shadow: 0px 1px 1px 0px rgba(0, 0, 0, 0.05);
-  --es-glow-green-shadow: 0px 0px 6px 0px rgba(52, 211, 153, 0.45);
+  /* ── No shadows — depth via surface color (DESIGN.md strategy) ── */
+  --es-card-shadow: none;
+  --es-input-shadow: none;
 
-  /* ── Radii ── */
-  --es-radius-sm: 10px;
-  --es-radius-md: 14px;
-  --es-radius-lg: 18px;
-  --es-radius-xl: 24px;
-  --es-radius-2xl: 32px;
+  /* ── Radii (DESIGN.md scale) ── */
+  --es-radius-sm: 4px;
+  --es-radius-md: 8px;
+  --es-radius-lg: 12px;
+  --es-radius-pill: 30px;
+  --es-radius-xl: 32px;
+  --es-radius-2xl: 40px;
+  --es-radius-3xl: 48px;
   --es-radius-full: 9999px;
 
-  /* ── Spacing (4px base grid) ── */
+  /* ── Spacing (hybrid 4px/8px) ── */
   --es-spacing-1: 4px;
-  --es-spacing-2: 6px;
-  --es-spacing-3: 8px;
+  --es-spacing-2: 8px;
+  --es-spacing-3: 10px;
   --es-spacing-4: 12px;
   --es-spacing-5: 16px;
   --es-spacing-6: 20px;
   --es-spacing-7: 24px;
   --es-spacing-8: 32px;
   --es-spacing-9: 40px;
-  --es-spacing-10: 48px;
-  --es-spacing-11: 64px;
+  --es-spacing-section: 72px;
+  --es-spacing-section-lg: 80px;
 }
 
-/* Light theme (default). Dark tokens apply when the OS prefers dark mode. */
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Light theme variables for shadcn/Agora components that depend on HSL tokens */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  /* --- Agora light token set --- */
+  --background:       146 80% 4%;
+  --surface:          189 70% 9%;
+  --surface-elevated: 189 52% 13%;
 
-  /* Backgrounds */
-  --background:       220 20% 98%;
-  --surface:          220 18% 96%;
-  --surface-elevated: 220 16% 94%;
+  --card:             189 70% 9%;
+  --card-foreground:  0 0% 100%;
+  --popover:          189 52% 13%;
+  --popover-foreground: 0 0% 100%;
+  --muted:            189 52% 13%;
 
-  /* Semantic surface aliases */
-  --card:             0 0% 100%;
-  --card-foreground:  220 25% 12%;
-  --popover:          0 0% 100%;
-  --popover-foreground: 220 25% 12%;
-  --muted:            220 14% 94%;
+  --border:           189 32% 22%;
+  --input:            189 32% 22%;
 
-  /* Borders / inputs */
-  --border:           220 13% 88%;
-  --input:            220 13% 88%;
+  --foreground:       0 0% 100%;
+  --muted-foreground: 0 0% 44%;
 
-  /* Foreground */
-  --foreground:       220 25% 12%;
-  --muted-foreground: 220 10% 42%;
+  --primary:            90 100% 82%;
+  --primary-foreground: 146 80% 4%;
 
-  /* Brand — Agora cyan */
-  --primary:            194 100% 42%;
-  --primary-foreground: 220 25% 12%;
+  --secondary:            189 52% 13%;
+  --secondary-foreground: 0 0% 100%;
 
-  /* Secondary — quiet surface-level control */
-  --secondary:            220 14% 94%;
-  --secondary-foreground: 220 25% 12%;
+  --accent:            90 100% 82%;
+  --accent-foreground: 146 80% 4%;
 
-  /* Accent — same hue as primary */
-  --accent:            194 100% 42%;
-  --accent-foreground: 220 25% 12%;
-
-  /* Destructive — end call, error states only */
   --destructive:            0 72% 52%;
   --destructive-foreground: 0 0% 100%;
 
-  /* Focus ring */
-  --ring: 194 100% 42%;
+  --ring: 90 100% 82%;
 
-  /* Radius base (8px) */
   --radius: 0.5rem;
 
-  /* Charts */
-  --chart-1: 194 100% 42%;
-  --chart-2: 220 10% 45%;
-  --chart-3: 220 10% 35%;
+  --chart-1: 90 100% 82%;
+  --chart-2: 189 32% 45%;
+  --chart-3: 189 32% 35%;
   --chart-4: 0 72% 52%;
   --chart-5: 150 50% 40%;
 
-  /* Sidebar */
-  --sidebar-background:         0 0% 100%;
-  --sidebar-foreground:         220 25% 12%;
-  --sidebar-primary:            194 100% 42%;
-  --sidebar-primary-foreground: 220 25% 12%;
-  --sidebar-accent:             220 14% 94%;
-  --sidebar-accent-foreground:  220 25% 12%;
-  --sidebar-border:             220 13% 88%;
-  --sidebar-ring:               194 100% 42%;
+  --sidebar-background:         189 70% 9%;
+  --sidebar-foreground:         0 0% 100%;
+  --sidebar-primary:            90 100% 82%;
+  --sidebar-primary-foreground: 146 80% 4%;
+  --sidebar-accent:             189 52% 13%;
+  --sidebar-accent-foreground:  0 0% 100%;
+  --sidebar-border:             189 32% 22%;
+  --sidebar-ring:               90 100% 82%;
 
-  --viz-stop-1: 225 92% 50%;
-  --viz-stop-2: 220 14% 78%;
-  --viz-stop-3: 285 58% 48%;
+  --viz-stop-1: 90 100% 82%;
+  --viz-stop-2: 189 42% 50%;
+  --viz-stop-3: 160 62% 52%;
 
-  /* Font */
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-
-    --background:       220 14% 5%;
-    --surface:          220 12% 9%;
-    --surface-elevated: 220 10% 13%;
-
-    --card:             220 12% 9%;
-    --card-foreground:  220 15% 95%;
-    --popover:          220 10% 13%;
-    --popover-foreground: 220 15% 95%;
-    --muted:            220 12% 9%;
-
-    --border:           220 10% 18%;
-    --input:            220 10% 18%;
-
-    --foreground:       220 15% 95%;
-    --muted-foreground: 220 10% 50%;
-
-    --primary:            194 100% 50%;
-    --primary-foreground: 220 14% 5%;
-
-    --secondary:            220 10% 13%;
-    --secondary-foreground: 220 15% 95%;
-
-    --accent:            194 100% 50%;
-    --accent-foreground: 220 14% 5%;
-
-    --destructive:            0 72% 58%;
-    --destructive-foreground: 0 0% 100%;
-
-    --ring: 194 100% 50%;
-
-    --chart-1: 194 100% 50%;
-    --chart-2: 220 10% 60%;
-    --chart-3: 220 10% 40%;
-    --chart-4: 0 72% 58%;
-    --chart-5: 150 60% 45%;
-
-    --sidebar-background:         220 12% 9%;
-    --sidebar-foreground:         220 15% 95%;
-    --sidebar-primary:            194 100% 50%;
-    --sidebar-primary-foreground: 220 14% 5%;
-    --sidebar-accent:             220 10% 13%;
-    --sidebar-accent-foreground:  220 15% 95%;
-    --sidebar-border:             220 10% 18%;
-    --sidebar-ring:               194 100% 50%;
-
-    --viz-stop-1: 194 100% 58%;
-    --viz-stop-2: 215 42% 72%;
-    --viz-stop-3: 272 62% 72%;
-  }
+  --font-sans: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body {
@@ -180,6 +121,7 @@ body {
   color: hsl(var(--foreground));
   background-color: hsl(var(--background));
 }
+
 
 /* ═══════════════════════════════════════════════════════════════
    Scroll Reveal Animation System
@@ -327,6 +269,11 @@ body {
   50% { opacity: 0.7; }
 }
 
+@keyframes scroll-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
 .animate-fade-in {
   animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -343,8 +290,12 @@ body {
   animation: pulse-subtle 2s ease-in-out infinite;
 }
 
+.animate-scroll-bounce {
+  animation: scroll-bounce 1.5s ease-in-out infinite;
+}
+
 /* ═══════════════════════════════════════════════════════════════
-   Grid Pattern Background (for hero sections)
+   Grid Pattern Background (dark variant)
    ═══════════════════════════════════════════════════════════════ */
 
 .grid-pattern {
@@ -356,8 +307,8 @@ body {
 
 .grid-pattern-subtle {
   background-image:
-    linear-gradient(to right, rgba(229, 229, 229, 0.4) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(229, 229, 229, 0.4) 1px, transparent 1px);
+    linear-gradient(to right, rgba(38, 67, 72, 0.3) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(38, 67, 72, 0.3) 1px, transparent 1px);
   background-size: 64px 64px;
 }
 
@@ -372,18 +323,18 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Frosted Glass Nav
+   Frosted Glass Nav (dark variant)
    ═══════════════════════════════════════════════════════════════ */
 
 .nav-glass {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(17px) saturate(1.06);
-  -webkit-backdrop-filter: blur(17px) saturate(1.06);
+  background: rgba(3, 26, 16, 0.82);
+  backdrop-filter: blur(17px) saturate(1.2);
+  -webkit-backdrop-filter: blur(17px) saturate(1.2);
   border-bottom: 1px solid var(--es-border-subtle);
 }
 
 .nav-glass-scrolled {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  background: rgba(3, 26, 16, 0.95);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -415,4 +366,87 @@ body {
     max-width: 3.5rem;
     max-height: 3.5rem;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Meeting Room — Google Meet Control Bar
+   ═══════════════════════════════════════════════════════════════ */
+
+.meeting-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  border: 1px solid var(--es-border-subtle);
+  background: var(--es-panel-bg-2);
+  color: var(--es-text-primary);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.meeting-control-btn:hover {
+  background: var(--es-panel-bg);
+  transform: scale(1.05);
+}
+
+.meeting-control-btn.active {
+  background: var(--es-action-primary);
+  color: var(--es-on-primary);
+  border-color: var(--es-action-primary);
+}
+
+.meeting-control-btn.destructive {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.meeting-control-btn.destructive:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+/* Chat sidebar slide animation */
+.chat-sidebar-enter {
+  animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Custom Scrollbar (Theme aligned)
+   ═══════════════════════════════════════════════════════════════ */
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(208, 255, 162, 0.4) rgba(255, 255, 255, 0.05);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(208, 255, 162, 0.4); /* Lime Green transparent */
+  border-radius: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(208, 255, 162, 0.8); /* Lime Green more opaque */
 }

@@ -52,10 +52,10 @@
 
 | Symptom | First Files to Inspect |
 | --- | --- |
-| RTM login fails | `app/api/generate-agora-token/route.ts`, `components/LandingPage.tsx` |
+| RTM login fails | `app/api/generate-agora-token/route.ts`, `components/MeetingPage.tsx` |
 | Agent starts but no transcript | `components/ConversationComponent.tsx`, `lib/conversation.ts` |
-| Conversation hangs on end | `components/LandingPage.tsx`, `app/api/stop-conversation/route.ts` |
-| Metrics panel empty | `components/ConversationComponent.tsx`, `components/QuickstartPipelineMetrics.tsx` |
+| Conversation hangs on end | `components/MeetingPage.tsx`, `app/api/stop-conversation/route.ts` |
+| Metrics panel empty | `components/ConversationComponent.tsx`, `components/ClassroomPipelineMetrics.tsx` |
 
 ## Sandbox and Local Dev Caveats
 

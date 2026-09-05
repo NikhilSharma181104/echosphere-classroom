@@ -1,6 +1,13 @@
-﻿import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Inter, Manrope } from 'next/font/google';
 import './globals.css';
+
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-manrope',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
+});
 
 const inter = Inter({
   subsets: ['latin'],
@@ -21,25 +28,13 @@ export const metadata: Metadata = {
     'SonaAI Classroom brings AI-powered voice agents into live classrooms. Real-time transcripts, intelligent co-teaching, and seamless collaboration for teachers and students.',
   icons: {
     icon: [
-      { url: '/favicon.ico' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-    ],
-    apple: [{ url: '/apple-touch-icon.png' }],
-    other: [
-      {
-        url: '/android-chrome-192x192.png',
-        sizes: '192x192',
-        type: 'image/png',
-      },
-      {
-        url: '/android-chrome-512x512.png',
-        sizes: '512x512',
-        type: 'image/png',
-      },
-    ],
+      { url: '/Favicon.png', type: 'image/png' }
+    ]
   },
 };
+
+import SmoothScrollProvider from '@/components/SmoothScrollProvider';
+import CustomCursor from '@/components/CustomCursor';
 
 export default function RootLayout({
   children,
@@ -47,12 +42,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full ${inter.variable}`}>
+    <html lang="en" className={`h-full ${manrope.variable} ${inter.variable}`}>
       <body
         className="h-full min-h-screen"
-        style={{ fontFamily: 'var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif' }}
+        style={{ fontFamily: 'var(--font-manrope), var(--font-inter), ui-sans-serif, system-ui, sans-serif' }}
       >
-        {children}
+        <SmoothScrollProvider>
+          <CustomCursor />
+          {children}
+        </SmoothScrollProvider>
       </body>
     </html>
   );

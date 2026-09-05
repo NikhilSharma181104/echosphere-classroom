@@ -15,6 +15,12 @@ import type {
 } from "../types/conversation";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { LoadingSkeleton } from "./LoadingSkeleton";
+import {
+  AgoraVoiceAI,
+  ChatMessageType,
+  ChatMessagePriority,
+} from "agora-agent-client-toolkit";
+import { SUMMARY_PROMPT } from "@/lib/prompts";
 
 // Dynamically import the ConversationComponent with ssr disabled
 const ConversationComponent = dynamic(() => import("./ConversationComponent"), {
@@ -55,6 +61,7 @@ const AgoraProvider = dynamic(
 export default function MeetingPage() {
   const router = useRouter();
   const [showConversation, setShowConversation] = useState(false);
+  const [isAnimationComplete, setIsAnimationComplete] = useState(false);
   const [userSession, setUserSession] = useState<UserSession | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -342,23 +349,29 @@ export default function MeetingPage() {
     // response arrives — no async prop-propagation gap.
     summaryModeRef.current = true;
     try {
-      const res = await fetch("/api/inject-think", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // FIX 4: pass interruptable:false so the summary response can't be cut
-        // off by a student speaking during the generation window.
-        body: JSON.stringify({ agent_id: agoraData.agentId, interruptable: false }),
+      const transcriptLog = sessionTranscriptLog.current
+        .map((t) => `[${t.role} - ${t.name}]: ${t.text}`)
+        .join("\n");
+
+      const promptText = `Here is the full transcript of the class:\n\n${transcriptLog}\n\n${SUMMARY_PROMPT}`;
+
+      const ai = AgoraVoiceAI.getInstance();
+      if (!ai) throw new Error("AI not initialized");
+      
+      // We use the frontend RTM connection instead of the REST API to bypass 
+      // the need for HTTP Basic Auth (Customer ID/Secret) which causes the 401.
+      await ai.sendText(agoraData.agentId, {
+        messageType: ChatMessageType.TEXT,
+        text: promptText,
+        priority: ChatMessagePriority.INTERRUPTED,
+        responseInterruptable: false,
       });
-      if (!res.ok) {
-        summaryModeRef.current = false;
-        throw new Error(await res.text());
-      }
       setSummaryState("waiting");
 
       summaryTimeoutRef.current = setTimeout(() => {
         summaryModeRef.current = false;
         setSummaryState("error");
-      }, 15000);
+      }, 60000);
     } catch (err) {
       console.error("Failed to request summary:", err);
       summaryModeRef.current = false;
@@ -491,44 +504,64 @@ export default function MeetingPage() {
   }
 
   // Pre-join loading state
-  if (!showConversation) {
+  if (!showConversation || !isAnimationComplete) {
+    const glassPanel = {
+      background: 'rgba(255, 255, 255, 0.6)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      border: '1px solid rgba(255, 255, 255, 0.4)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.05)'
+    };
+
     return (
       <div
-        className="flex min-h-screen flex-col items-center justify-center gap-4 px-4"
-        style={{ background: "var(--es-page-bg)" }}
+        className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 bg-cover bg-center bg-no-repeat bg-fixed relative"
+        style={{ backgroundImage: 'url("/Teacher-Dashboard.png")' }}
       >
-        <div className="grid-pattern-subtle grid-fade-b absolute inset-0 -z-10" />
+        {/* Logo */}
+        <div className="absolute top-6 left-6 md:left-8 z-50 flex items-center gap-2.5">
+          <img src="/SonaAI%20icon1.png" alt="SonaAI Logo" className="h-9 w-9 object-contain bg-white p-1" style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
+          <span
+            className="text-xl font-extrabold tracking-tight"
+            style={{
+              color: '#031A10',
+              fontFamily: 'var(--font-manrope)',
+            }}
+          >
+            SonaAI
+          </span>
+        </div>
 
         <div
-          className="animate-slide-up-enter flex flex-col items-center rounded-[var(--es-radius-xl)] p-8 text-center"
-          style={{
-            background: "var(--es-page-bg)",
-            border: "1px solid var(--es-border-subtle)",
-            boxShadow: "0 4px 24px rgba(0, 0, 0, 0.06)",
-          }}
+          className="animate-slide-up-enter flex flex-col items-center rounded-[32px] p-10 text-center shadow-2xl max-w-md w-full"
+          style={glassPanel}
         >
-          <div
-            className="mb-4 flex h-12 w-12 items-center justify-center rounded-[var(--es-radius-md)]"
-            style={{ background: "var(--es-action-primary)" }}
-          >
-            <Sparkles className="h-6 w-6 text-white" />
+          <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-2xl shadow-lg overflow-hidden bg-[#031A10]">
+            <video 
+              src="/Loading.webm" 
+              autoPlay 
+              muted 
+              playsInline 
+              className="w-full h-full object-cover"
+              onEnded={() => setIsAnimationComplete(true)}
+            />
           </div>
 
           {isLoading ? (
             <>
               <Loader2
-                className="mb-3 h-6 w-6 animate-spin"
-                style={{ color: "var(--es-text-primary)" }}
+                className="mb-4 h-8 w-8 animate-spin"
+                style={{ color: "#031A10" }}
               />
               <p
-                className="text-lg font-semibold"
-                style={{ color: "var(--es-text-primary)" }}
+                className="text-2xl font-extrabold font-manrope"
+                style={{ color: "#031A10" }}
               >
                 Joining classroom…
               </p>
               <p
-                className="mt-1 text-sm"
-                style={{ color: "var(--es-text-muted)" }}
+                className="mt-2 text-sm font-medium"
+                style={{ color: "rgba(3, 26, 16, 0.6)" }}
               >
                 Setting up your audio and connecting to the room
               </p>
@@ -536,19 +569,19 @@ export default function MeetingPage() {
           ) : error ? (
             <>
               <p
-                className="text-lg font-semibold"
-                style={{ color: "var(--es-text-primary)" }}
+                className="text-2xl font-extrabold font-manrope"
+                style={{ color: "#031A10" }}
               >
                 Connection Failed
               </p>
-              <p className="mt-1 text-sm" style={{ color: "#dc2626" }}>
+              <p className="mt-2 text-sm font-medium" style={{ color: "#dc2626" }}>
                 {error}
               </p>
               <button
                 type="button"
                 onClick={() => router.push("/dashboard")}
-                className="mt-4 rounded-full px-6 py-2 text-sm font-semibold text-white"
-                style={{ background: "var(--es-action-primary)" }}
+                className="mt-6 rounded-full px-8 py-3 text-sm font-bold shadow-lg transition-transform hover:scale-105"
+                style={{ background: '#031A10', color: '#D0FFA2' }}
               >
                 Back to Dashboard
               </button>
@@ -556,8 +589,8 @@ export default function MeetingPage() {
           ) : (
             <>
               <p
-                className="text-lg font-semibold"
-                style={{ color: "var(--es-text-primary)" }}
+                className="text-2xl font-extrabold font-manrope"
+                style={{ color: "#031A10" }}
               >
                 Preparing classroom…
               </p>
@@ -688,9 +721,8 @@ export default function MeetingPage() {
             <div
               className="w-full max-w-lg rounded-[var(--es-radius-xl)] p-6 space-y-4"
               style={{
-                background: "var(--es-page-bg)",
+                background: "var(--es-panel-bg)",
                 border: "1px solid var(--es-border-subtle)",
-                boxShadow: "0 8px 40px rgba(0, 0, 0, 0.12)",
               }}
             >
               <div className="flex items-center gap-2">
@@ -736,8 +768,8 @@ export default function MeetingPage() {
                   <button
                     type="button"
                     onClick={handleDownloadSummary}
-                    className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02]"
-                    style={{ background: "var(--es-action-primary)" }}
+                    className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition-all duration-200 hover:scale-[1.02]"
+                    style={{ background: 'var(--es-action-primary)', color: 'var(--es-on-primary)' }}
                   >
                     <FileText className="h-4 w-4" />
                     Download Summary (PDF)
