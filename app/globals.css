@@ -312,6 +312,13 @@ body {
   background-size: 64px 64px;
 }
 
+.grid-pattern-white {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
 .grid-fade-b {
   mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
   -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
@@ -428,25 +435,25 @@ body {
    Custom Scrollbar (Theme aligned)
    ═══════════════════════════════════════════════════════════════ */
 
-.custom-scrollbar {
+html, body, .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(208, 255, 162, 0.4) rgba(255, 255, 255, 0.05);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
+::-webkit-scrollbar, .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
+::-webkit-scrollbar-track, .custom-scrollbar::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb, .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(208, 255, 162, 0.4); /* Lime Green transparent */
   border-radius: 8px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover, .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(208, 255, 162, 0.8); /* Lime Green more opaque */
 }

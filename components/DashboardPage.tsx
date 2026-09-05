@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles, LogOut } from 'lucide-react';
 import type { UserRole } from '@/types/conversation';
+import { supabase } from '@/lib/supabaseClient';
+import { AnimatePresence } from 'framer-motion';
 import TeacherDashboard from './TeacherDashboard';
 import StudentDashboard from './StudentDashboard';
+import ProfileCropperModal from './ProfileCropperModal';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -27,33 +30,105 @@ function formatDate(): string {
 type SessionData = {
   name: string;
   role: UserRole;
+  avatar_url?: string;
 };
 
 export default function DashboardPage() {
   const router = useRouter();
   const [session, setSession] = useState<SessionData | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    const stored = sessionStorage.getItem('echosphere_session');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setSession({ name: parsed.name, role: parsed.role });
-      } catch {
-        router.push('/auth');
+    
+    // Check Supabase session first (handles OAuth and real email logins)
+    supabase.auth.getSession().then(({ data: { session: supaSession } }) => {
+      if (supaSession) {
+        setSession({
+          name: supaSession.user.user_metadata?.name || supaSession.user.email?.split('@')[0] || 'User',
+          role: supaSession.user.user_metadata?.role || 'student',
+          avatar_url: supaSession.user.user_metadata?.custom_avatar_url || supaSession.user.user_metadata?.avatar_url || null,
+        });
+      } else {
+        // Fallback to local bypass dummy session
+        const stored = sessionStorage.getItem('echosphere_session');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setSession({ name: parsed.name, role: parsed.role, avatar_url: parsed.avatar_url });
+          } catch {
+            router.push('/auth');
+          }
+        } else {
+          router.push('/auth');
+        }
       }
-    } else {
-      router.push('/auth');
-    }
+    });
   }, [router]);
 
-  const handleSignOut = useCallback(() => {
+  const handleSignOut = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error(e);
+    }
     sessionStorage.removeItem('echosphere_session');
     sessionStorage.removeItem('echosphere_meeting');
-    router.push('/');
-  }, [router]);
+    window.location.href = '/';
+  }, []);
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !session) return;
+    
+    // Clear input so same file can be selected again
+    e.target.value = '';
+    
+    const url = URL.createObjectURL(file);
+    setCropImageUrl(url);
+  };
+
+  const handleCroppedSave = async (croppedBlob: Blob) => {
+    const { data: { session: supaSession } } = await supabase.auth.getSession();
+    
+    let finalUrl = '';
+
+    if (supaSession) {
+      const fileName = `${supaSession.user.id}-${Math.random()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, croppedBlob, { contentType: 'image/jpeg' });
+        
+      if (uploadError) {
+        console.error('Upload Error:', uploadError);
+        alert(`Failed to upload to Supabase: ${uploadError.message}. Please check if your bucket is exactly named "avatars" (lowercase) and that you ran the SQL policy.`);
+      } else {
+        const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+        finalUrl = data.publicUrl;
+        
+        await supabase.auth.updateUser({
+          data: { custom_avatar_url: finalUrl }
+        });
+      }
+    }
+
+    if (!finalUrl) {
+      finalUrl = URL.createObjectURL(croppedBlob);
+    }
+    
+    if (session) {
+      const newSession = { ...session, avatar_url: finalUrl };
+      setSession(newSession);
+      const stored = sessionStorage.getItem('echosphere_session');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          sessionStorage.setItem('echosphere_session', JSON.stringify({ ...parsed, avatar_url: finalUrl }));
+        } catch {}
+      }
+    }
+  };
 
   if (!mounted || !session) {
     return (
@@ -84,7 +159,7 @@ export default function DashboardPage() {
       <div className="absolute top-6 left-0 right-0 z-50 px-4 md:px-8 flex items-center justify-between">
         
         {/* Logo (Far Left) */}
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <Link href="/dashboard" className="flex items-center gap-2.5 group">
           <img src="/SonaAI%20icon1.png" alt="SonaAI Logo" className="h-9 w-9 object-contain bg-white p-1" style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
           <span
             className="text-xl font-extrabold tracking-tight"
@@ -143,12 +218,20 @@ export default function DashboardPage() {
                   {session.role}
                 </span>
               </div>
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold shadow-md"
-                style={{ background: '#D0FFA2', color: '#031A10' }}
-              >
-                {initials}
-              </div>
+              <label className="relative cursor-pointer group flex items-center justify-center">
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold shadow-md overflow-hidden transition-opacity group-hover:opacity-80"
+                  style={{ background: '#D0FFA2', color: '#031A10' }}
+                  title="Upload profile picture"
+                >
+                  {(session as any).avatar_url ? (
+                    <img src={(session as any).avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                  ) : (
+                    initials
+                  )}
+                </div>
+              </label>
             </div>
 
             <button
@@ -169,9 +252,19 @@ export default function DashboardPage() {
         {session.role === 'teacher' ? (
           <TeacherDashboard session={session} />
         ) : (
-          <StudentDashboard session={session} />
+          <StudentDashboard session={session} onAvatarUpload={handleAvatarUpload} />
         )}
       </main>
+
+      <AnimatePresence>
+        {cropImageUrl && (
+          <ProfileCropperModal
+            imageUrl={cropImageUrl}
+            onClose={() => setCropImageUrl(null)}
+            onSave={handleCroppedSave}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

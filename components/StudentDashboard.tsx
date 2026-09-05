@@ -13,13 +13,15 @@ import {
   Plus,
   Check,
   Video,
-  ChevronLeft
+  ChevronLeft,
+  Activity
 } from 'lucide-react';
 import type { UserRole } from '@/types/conversation';
 
 type SessionData = {
   name: string;
   role: UserRole;
+  avatar_url?: string;
 };
 
 const glassPanel = {
@@ -30,10 +32,9 @@ const glassPanel = {
   boxShadow: '0 8px 32px rgba(0,0,0,0.05)'
 };
 
-export default function StudentDashboard({ session }: { session: SessionData }) {
+export default function StudentDashboard({ session, onAvatarUpload }: { session: SessionData, onAvatarUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
   const router = useRouter();
   const [studentCode, setStudentCode] = useState('');
-  const [profilePic, setProfilePic] = useState<string | null>(null);
   const today = new Date();
   const currentMonth = today.toLocaleString('default', { month: 'long' });
   const currentYear = today.getFullYear();
@@ -51,11 +52,6 @@ export default function StudentDashboard({ session }: { session: SessionData }) 
   const [selectedDate, setSelectedDate] = useState<number>(currentDate);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const savedPic = localStorage.getItem('student_profile_pic');
-    if (savedPic) setProfilePic(savedPic);
-  }, []);
-
   const handleJoinAsStudent = useCallback(() => {
     if (!session || !studentCode.trim()) return;
     sessionStorage.setItem(
@@ -69,19 +65,6 @@ export default function StudentDashboard({ session }: { session: SessionData }) 
     router.push('/meeting');
   }, [session, studentCode, router]);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setProfilePic(base64String);
-        localStorage.setItem('student_profile_pic', base64String);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   return (
     <div className="grid h-full w-full grid-cols-1 md:grid-cols-4 md:grid-rows-3 gap-6 animate-fade-in pb-4">
       
@@ -93,7 +76,7 @@ export default function StudentDashboard({ session }: { session: SessionData }) 
         <div 
           className="absolute inset-0 bg-cover bg-center z-0 transition-transform duration-500 group-hover:scale-105"
           style={{ 
-            backgroundImage: profilePic ? `url(${profilePic})` : 'url("/hero_classroom_1788611365675.jpg")',
+            backgroundImage: session.avatar_url ? `url(${session.avatar_url})` : 'url("/hero_classroom_1788611365675.jpg")',
             backgroundPosition: 'center 20%'
           }}
         />
@@ -110,7 +93,7 @@ export default function StudentDashboard({ session }: { session: SessionData }) 
         <input 
           type="file" 
           ref={fileInputRef}
-          onChange={handlePhotoUpload}
+          onChange={onAvatarUpload}
           accept="image/*"
           className="hidden"
         />

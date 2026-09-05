@@ -64,7 +64,7 @@ function Navbar() {
           {/* Desktop nav links */}
           <div className="hidden items-center gap-7 md:flex">
             {[
-              { label: 'Home', href: '#', active: true },
+              { label: 'Home', href: '/', active: true },
               { label: 'Features', href: '#features', active: false },
               { label: 'How It Works', href: '#how-it-works', active: false },
               { label: 'Testimonials', href: '#testimonials', active: false },
@@ -209,14 +209,14 @@ function FeatureCard({
       >
         {description}
       </p>
-      <div className="mt-4 flex items-center justify-between">
-        <span className="text-xs font-medium" style={{ color: '#707070' }}>
+      <Link href="/features" className="mt-4 flex items-center justify-between group-hover:cursor-pointer">
+        <span className="text-xs font-medium transition-colors" style={{ color: '#707070' }}>
           Learn more
         </span>
         <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors group-hover:bg-black/5">
           <ArrowUpRight className="h-4 w-4" style={{ color: '#000000' }} />
         </div>
-      </div>
+      </Link>
     </motion.div>
   );
 }
@@ -303,6 +303,14 @@ function SectionBadge({ children }: { children: React.ReactNode }) {
    ─ Footer:        dark forest (#031A10)
    ───────────────────────────────────────────────────────────── */
 export default function HomePage() {
+  const [subscribed, setSubscribed] = useState(false);
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubscribed(true);
+    setTimeout(() => setSubscribed(false), 3000); // Reset after 3s
+  };
+
   return (
     <div>
       <Navbar />
@@ -313,9 +321,9 @@ export default function HomePage() {
         style={{ background: '#031A10', color: '#FFFFFF' }}
       >
         {/* Grid pattern background */}
-        <div className="grid-pattern-subtle grid-fade-b absolute inset-0 -z-10" />
+        <div className="grid-pattern-white grid-fade-b absolute inset-0 pointer-events-none" />
 
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
           <div className="flex flex-col items-center gap-12 md:flex-row md:items-center md:gap-16">
             {/* Left text column */}
             <div className="flex-1 text-left">
@@ -623,27 +631,29 @@ export default function HomePage() {
               </p>
 
               {/* Newsletter */}
-              <div
+              <form
+                onSubmit={handleSubscribe}
                 className="flex rounded-lg overflow-hidden"
                 style={{ border: '1px solid #264348' }}
               >
                 <input
                   type="email"
                   placeholder="Enter your email"
+                  required
                   className="flex-1 bg-transparent px-4 py-2.5 text-sm outline-none"
                   style={{ color: '#FFFFFF' }}
                 />
                 <button
-                  type="button"
+                  type="submit"
                   className="px-4 py-2.5 text-sm font-semibold transition-all duration-200 hover:opacity-90"
                   style={{
-                    background: 'var(--es-action-primary)',
-                    color: 'var(--es-on-primary)',
+                    background: subscribed ? '#4ade80' : 'var(--es-action-primary)',
+                    color: subscribed ? '#000000' : 'var(--es-on-primary)',
                   }}
                 >
-                  Subscribe
+                  {subscribed ? 'Subscribed!' : 'Subscribe'}
                 </button>
-              </div>
+              </form>
             </div>
 
             {/* Link columns */}
@@ -659,15 +669,20 @@ export default function HomePage() {
                   Quick Links
                 </h4>
                 <ul className="space-y-2.5">
-                  {['Home', 'Features', 'How It Works', 'Pricing'].map((item) => (
-                    <li key={item}>
-                      <a
-                        href="#"
+                  {[
+                    { name: 'Home', href: '/' },
+                    { name: 'Features', href: '#features' },
+                    { name: 'How It Works', href: '#how-it-works' },
+                    { name: 'Pricing', href: '/pricing' }
+                  ].map((item) => (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
                         className="text-sm transition-colors duration-200 hover:text-white"
                         style={{ color: '#707070' }}
                       >
-                        {item}
-                      </a>
+                        {item.name}
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -707,15 +722,19 @@ export default function HomePage() {
                   Other Pages
                 </h4>
                 <ul className="space-y-2.5">
-                  {['Contact', 'Dashboard', 'Blog'].map((item) => (
-                    <li key={item}>
-                      <a
-                        href="#"
+                  {[
+                    { name: 'Contact', href: '/contact' },
+                    { name: 'Dashboard', href: '/dashboard' },
+                    { name: 'Blog', href: '/blog' }
+                  ].map((item) => (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
                         className="text-sm transition-colors duration-200 hover:text-white"
                         style={{ color: '#707070' }}
                       >
-                        {item}
-                      </a>
+                        {item.name}
+                      </Link>
                     </li>
                   ))}
                 </ul>
