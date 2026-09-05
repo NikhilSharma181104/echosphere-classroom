@@ -113,8 +113,9 @@ export default function ConversationComponent({
   teacherControls,
   onTranscriptTurn,
   onSummaryTurn,
-  summaryMode = false,
+  summaryModeRef,
   onAgentId,
+  onRequestAgentId,
   onTokenWillExpire,
   onEndConversation,
 }: ConversationComponentProps) {
@@ -139,13 +140,28 @@ export default function ConversationComponent({
   // Stable refs for summary capture.
   const onSummaryTurnRef = useRef(onSummaryTurn);
   useEffect(() => { onSummaryTurnRef.current = onSummaryTurn; }, [onSummaryTurn]);
-  const summaryModeRef = useRef(summaryMode);
-  useEffect(() => { summaryModeRef.current = summaryMode; }, [summaryMode]);
+  // summaryModeRef is a shared mutable ref passed directly from the parent —
+  // no local mirroring needed. The parent sets .current = true synchronously
+  // before calling inject-think, so we read the same object with no async gap.
+  // summaryCaptured tracks whether we've already captured a summary turn in the
+  // current summary attempt. It is reset to false when summaryModeRef.current
+  // transitions to true (i.e. at the START of each new summary attempt).
   const summaryCaptured = useRef(false);
+  const prevSummaryModeRef = useRef(false);
+  useEffect(() => {
+    const current = summaryModeRef?.current ?? false;
+    if (current && !prevSummaryModeRef.current) {
+      // summaryMode just became true — reset capture flag for this new attempt.
+      summaryCaptured.current = false;
+    }
+    prevSummaryModeRef.current = current;
+  });
 
-  // Stable ref for onAgentId so the RTM listener doesn't need re-registration.
+  // Stable refs for onAgentId and onRequestAgentId.
   const onAgentIdRef = useRef(onAgentId);
   useEffect(() => { onAgentIdRef.current = onAgentId; }, [onAgentId]);
+  const onRequestAgentIdRef = useRef(onRequestAgentId);
+  useEffect(() => { onRequestAgentIdRef.current = onRequestAgentId; }, [onRequestAgentId]);
 
   // Tracks granular RTC connection state for the status dot.
   // Agora states: DISCONNECTED | CONNECTING | CONNECTED | DISCONNECTING | RECONNECTING
@@ -306,10 +322,12 @@ export default function ConversationComponent({
             onTranscriptTurnRef.current?.(turn);
 
             // If summary mode is active and this is the agent's turn, capture it
-            // as the post-class summary (fire once).
+            // as the post-class summary (fire once per attempt).
+            // summaryModeRef is the shared ref object — read .current directly,
+            // no async propagation delay.
             if (
               isAgent &&
-              summaryModeRef.current &&
+              (summaryModeRef?.current ?? false) &&
               !summaryCaptured.current &&
               typeof item.text === 'string' &&
               item.text.trim().length > 0
@@ -460,6 +478,16 @@ export default function ConversationComponent({
         typeof (parsed as { agent_id?: unknown }).agent_id === 'string'
       ) {
         onAgentIdRef.current?.((parsed as { agent_id: string }).agent_id);
+      }
+
+      // A student is requesting the agent_id (Fix 3: request/response pattern).
+      // The teacher's client responds by re-broadcasting agent_session if it has one.
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        (parsed as { type?: unknown }).type === 'request_agent_id'
+      ) {
+        onRequestAgentIdRef.current?.();
       }
     };
 
@@ -691,14 +719,14 @@ export default function ConversationComponent({
               value={chatText}
               onChange={(e) => setChatText(e.target.value)}
               placeholder="Type a message to SonaAI…"
-              disabled={isChatSending || summaryMode || !agoraData.agentId}
+              disabled={isChatSending || (summaryModeRef?.current ?? false) || !agoraData.agentId}
               maxLength={500}
               className="flex-1 rounded-full border border-border bg-card/80 px-4 py-1.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-40 backdrop-blur-md"
               aria-label="Chat message input"
             />
             <button
               type="submit"
-              disabled={!chatText.trim() || isChatSending || summaryMode || !agoraData.agentId}
+              disabled={!chatText.trim() || isChatSending || (summaryModeRef?.current ?? false) || !agoraData.agentId}
               className="flex h-8 w-8 items-center justify-center rounded-full border border-primary bg-primary text-black transition-colors hover:bg-white disabled:opacity-40"
               aria-label="Send message"
             >

@@ -6,12 +6,18 @@ export interface InjectThinkRequest {
   agent_id: string;
   /** The text to inject into the agent pipeline. Defaults to SUMMARY_PROMPT if omitted. */
   text?: string;
+  /**
+   * Whether the injected think can be interrupted by incoming speech.
+   * Defaults to true for chat messages; pass false for summary generation so
+   * a student speaking doesn't cut off the AI's summary response.
+   */
+  interruptable?: boolean;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: InjectThinkRequest = await request.json();
-    const { agent_id, text } = body;
+    const { agent_id, text, interruptable = true } = body;
 
     if (!agent_id) {
       return NextResponse.json(
@@ -49,7 +55,7 @@ export async function POST(request: NextRequest) {
       on_listening_action: 'interrupt',
       on_thinking_action: 'interrupt',
       on_speaking_action: 'interrupt',
-      interruptable: true, // allow interruption for normal chat; summary sets this via prompt
+      interruptable, // false for summary (prevents speech from cutting it off), true for chat
     });
 
     return NextResponse.json({ success: true });

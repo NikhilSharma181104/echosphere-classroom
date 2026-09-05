@@ -80,7 +80,7 @@ export default function LandingPage() {
   type SummaryState = 'idle' | 'requesting' | 'waiting' | 'ready' | 'error';
   const [summaryState, setSummaryState] = useState<SummaryState>('idle');
   const [summaryText, setSummaryText] = useState<string>('');
-  const [summaryMode, setSummaryMode] = useState(false);
+  const summaryModeRef = useRef(false);
   const summaryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Teacher-only: accumulates all completed transcript turns for the post-class summary.
@@ -294,7 +294,7 @@ export default function LandingPage() {
       summaryTimeoutRef.current = null;
     }
     setSummaryText(text);
-    setSummaryMode(false);
+    summaryModeRef.current = false;
     setSummaryState('ready');
   }, []);
 
@@ -306,12 +306,12 @@ export default function LandingPage() {
       return;
     }
     setSummaryState('requesting');
-    setSummaryMode(true);
+    summaryModeRef.current = true;
     try {
       const res = await fetch('/api/inject-think', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: agoraData.agentId }),
+        body: JSON.stringify({ agent_id: agoraData.agentId, interruptable: false }),
       });
       if (!res.ok) {
         throw new Error(await res.text());
@@ -320,12 +320,12 @@ export default function LandingPage() {
 
       // 15-second timeout — if no agent turn arrives, surface an error
       summaryTimeoutRef.current = setTimeout(() => {
-        setSummaryMode(false);
+        summaryModeRef.current = false;
         setSummaryState('error');
       }, 15000);
     } catch (err) {
       console.error('Failed to request summary:', err);
-      setSummaryMode(false);
+      summaryModeRef.current = false;
       setSummaryState('error');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -339,6 +339,7 @@ export default function LandingPage() {
   }, [summaryText, userSession]);
 
   const handleDismissSummaryAndEnd = useCallback(async () => {
+    summaryModeRef.current = false;
     setSummaryState('idle');
     setSummaryText('');
     if (summaryTimeoutRef.current) {
@@ -508,7 +509,7 @@ export default function LandingPage() {
                       onTranscriptTurn={handleTranscriptTurn}
                       onAgentId={handleAgentId}
                       onSummaryTurn={handleSummaryTurn}
-                      summaryMode={summaryMode}
+                      summaryModeRef={summaryModeRef}
                       onTokenWillExpire={handleTokenWillExpire}
                       onEndConversation={handleEndConversation}
                     />

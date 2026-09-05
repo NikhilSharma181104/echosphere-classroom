@@ -1,5 +1,5 @@
 import type { RTMClient } from 'agora-rtm';
-import type { ReactNode } from 'react';
+import type { ReactNode, MutableRefObject } from 'react';
 
 /** Lightweight session identity — no auth, just name + role + classroom. */
 export type UserRole = 'teacher' | 'student';
@@ -61,20 +61,32 @@ export interface ConversationComponentProps {
    */
   onTranscriptTurn?: (turn: TranscriptTurn) => void;
   /**
-   * Called when the AGENT produces a completed turn while summary mode is active
-   * (i.e. after inject-think fires). The parent uses this text to generate the PDF.
+   * Called when the AGENT produces a completed turn while summary mode is active.
+   * The parent uses this text to generate the PDF.
    */
   onSummaryTurn?: (text: string) => void;
   /**
-   * When true, the next completed agent turn text is forwarded to onSummaryTurn (once).
-   * Set to true immediately before calling /api/inject-think.
+   * A shared mutable ref (created in the parent with useRef(false)) that signals
+   * whether the next completed agent turn should be captured as the summary.
+   *
+   * Using a ref object instead of a boolean prop eliminates the async state→prop
+   * propagation race where the agent could respond before summaryMode updates:
+   * the parent sets summaryModeRef.current = true synchronously before calling
+   * /api/inject-think, so ConversationComponent sees the change immediately on
+   * the same event loop tick — no useEffect delay.
    */
-  summaryMode?: boolean;
+  summaryModeRef?: MutableRefObject<boolean>;
   /**
    * Called when an agent_session RTM message is received from another participant.
    * Used by student clients to obtain the agent_id the teacher broadcast on join.
    */
   onAgentId?: (agentId: string) => void;
+  /**
+   * Called when a { type: 'request_agent_id' } RTM message is received from a
+   * student. The teacher's client should respond by re-publishing agent_session
+   * if it has an active agentId.
+   */
+  onRequestAgentId?: () => void;
   onTokenWillExpire: (uid: string) => Promise<AgoraRenewalTokens>;
   onEndConversation: () => void;
 }

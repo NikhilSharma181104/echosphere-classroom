@@ -76,7 +76,10 @@ export default function MeetingPage() {
   type SummaryState = "idle" | "requesting" | "waiting" | "ready" | "error";
   const [summaryState, setSummaryState] = useState<SummaryState>("idle");
   const [summaryText, setSummaryText] = useState<string>("");
-  const [summaryMode, setSummaryMode] = useState(false);
+  // summaryModeRef is a shared mutable ref passed to ConversationComponent directly.
+  // Setting .current = true synchronously before calling inject-think eliminates the
+  // async gap where an agent response could arrive before the prop update propagated.
+  const summaryModeRef = useRef(false);
   const summaryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sessionTranscriptLog = useRef<
@@ -239,6 +242,16 @@ export default function MeetingPage() {
         await studentRtm.login({ token: responseData.token });
         await studentRtm.subscribe(responseData.channel);
 
+        // FIX 3: immediately request the agent_id from whoever is already in the channel.
+        // This fires AFTER subscribe completes, so the teacher's client will receive it
+        // and re-publish agent_session in response — works regardless of join order.
+        studentRtm
+          .publish(
+            responseData.channel,
+            JSON.stringify({ type: 'request_agent_id' }),
+          )
+          .catch(() => {/* non-fatal */});
+
         try {
           const metaResponse = await studentRtm.storage.getChannelMetadata(
             responseData.channel,
@@ -314,7 +327,7 @@ export default function MeetingPage() {
       summaryTimeoutRef.current = null;
     }
     setSummaryText(text);
-    setSummaryMode(false);
+    summaryModeRef.current = false; // reset the shared ref
     setSummaryState("ready");
   }, []);
 
@@ -324,25 +337,31 @@ export default function MeetingPage() {
       return;
     }
     setSummaryState("requesting");
-    setSummaryMode(true);
+    // FIX 2: set the shared ref synchronously BEFORE the fetch, so
+    // ConversationComponent sees summaryMode=true on the same tick the agent
+    // response arrives — no async prop-propagation gap.
+    summaryModeRef.current = true;
     try {
       const res = await fetch("/api/inject-think", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agent_id: agoraData.agentId }),
+        // FIX 4: pass interruptable:false so the summary response can't be cut
+        // off by a student speaking during the generation window.
+        body: JSON.stringify({ agent_id: agoraData.agentId, interruptable: false }),
       });
       if (!res.ok) {
+        summaryModeRef.current = false;
         throw new Error(await res.text());
       }
       setSummaryState("waiting");
 
       summaryTimeoutRef.current = setTimeout(() => {
-        setSummaryMode(false);
+        summaryModeRef.current = false;
         setSummaryState("error");
       }, 15000);
     } catch (err) {
       console.error("Failed to request summary:", err);
-      setSummaryMode(false);
+      summaryModeRef.current = false;
       setSummaryState("error");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -361,6 +380,7 @@ export default function MeetingPage() {
   }, [summaryText, userSession]);
 
   const handleDismissSummaryAndEnd = useCallback(async () => {
+    summaryModeRef.current = false;
     setSummaryState("idle");
     setSummaryText("");
     if (summaryTimeoutRef.current) {
@@ -418,6 +438,17 @@ export default function MeetingPage() {
       setIsAiMuteLoading(false);
     }
   }, [agoraData, userSession, isAiMuteLoading]);
+
+  // FIX 3: Teacher responds when a student requests the current agent_id via RTM.
+  // This is the primary reliable mechanism for late-joining students to get agentId,
+  // since it doesn't depend on message timing or the storage feature.
+  const handleRequestAgentId = useCallback(() => {
+    if (!agoraData?.agentId || !rtmClient) return;
+    const msg = JSON.stringify({ type: 'agent_session', agent_id: agoraData.agentId });
+    rtmClient
+      .publish(agoraData.channel, msg)
+      .catch((err) => console.warn('[agent_session] re-publish failed:', err));
+  }, [agoraData, rtmClient]);
 
   const handleEndConversation = async () => {
     if (agoraData?.agentId) {
@@ -621,7 +652,10 @@ export default function MeetingPage() {
                       onTranscriptTurn={handleTranscriptTurn}
                       onAgentId={handleAgentId}
                       onSummaryTurn={handleSummaryTurn}
-                      summaryMode={summaryMode}
+                      summaryModeRef={summaryModeRef}
+                      onRequestAgentId={
+                        userSession.role === 'teacher' ? handleRequestAgentId : undefined
+                      }
                       onTokenWillExpire={handleTokenWillExpire}
                       onEndConversation={handleEndConversation}
                     />
