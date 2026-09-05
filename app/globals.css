@@ -1,14 +1,14 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════
-   EchoSphere Design Tokens (from DESIGN.md)
+   SonaAI Design Tokens (from DESIGN.md)
    Monochrome palette — near-black on white, Inter + Geist Mono
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── EchoSphere palette ── */
+  /* ── SonaAI palette ── */
   --es-page-bg: #ffffff;
   --es-footer-bg: #f7f7f7;
   --es-panel-bg: #fbfbfb;

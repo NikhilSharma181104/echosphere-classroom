@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
@@ -43,7 +43,7 @@ export function QuickstartConversationLayout({
               className="text-base font-semibold tracking-tight"
               style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.32px' }}
             >
-              EchoSphere
+              SonaAI
             </span>
           </Link>
           <div className="hidden sm:flex min-w-0 flex-col justify-center gap-0.5 ml-3 pl-3"

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -165,7 +165,7 @@ export default function DashboardPage() {
               className="text-lg font-semibold tracking-tight"
               style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.32px' }}
             >
-              EchoSphere
+              SonaAI
             </span>
           </Link>
 

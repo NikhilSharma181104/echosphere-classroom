@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from 'next';
+﻿import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 
@@ -16,9 +16,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'EchoSphere Classroom — AI-Powered Live Learning',
+  title: 'SonaAI Classroom — AI-Powered Live Learning',
   description:
-    'EchoSphere Classroom brings AI-powered voice agents into live classrooms. Real-time transcripts, intelligent co-teaching, and seamless collaboration for teachers and students.',
+    'SonaAI Classroom brings AI-powered voice agents into live classrooms. Real-time transcripts, intelligent co-teaching, and seamless collaboration for teachers and students.',
   icons: {
     icon: [
       { url: '/favicon.ico' },

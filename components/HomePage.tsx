@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -43,7 +43,7 @@ function Navbar() {
             className="text-lg font-semibold tracking-tight"
             style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.32px' }}
           >
-            EchoSphere
+            SonaAI
           </span>
         </Link>
 
@@ -339,7 +339,7 @@ export default function HomePage() {
               letterSpacing: '-0.4px',
             }}
           >
-            EchoSphere brings an AI co-teacher into every live classroom.
+            SonaAI brings an AI co-teacher into every live classroom.
             Real-time voice transcripts, intelligent responses, and seamless
             collaboration — all in one place.
           </p>
@@ -547,7 +547,7 @@ export default function HomePage() {
           <div className="grid gap-6 md:grid-cols-2">
             <ScrollReveal animation="slide-left" delay={0}>
               <TestimonialCard
-                quote="EchoSphere transformed how I run my physics lectures. The AI picks up on student questions I might miss, and the end-of-class summary saves me hours of note-taking."
+                quote="SonaAI transformed how I run my physics lectures. The AI picks up on student questions I might miss, and the end-of-class summary saves me hours of note-taking."
                 name="Dr. Sarah Mitchell"
                 role="Physics Professor, Stanford"
                 initials="SM"
@@ -621,7 +621,7 @@ export default function HomePage() {
                   className="text-base font-semibold"
                   style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.32px' }}
                 >
-                  EchoSphere
+                  SonaAI
                 </span>
               </div>
               <p
@@ -685,7 +685,7 @@ export default function HomePage() {
             style={{ borderColor: 'var(--es-border-subtle)' }}
           >
             <p className="text-xs" style={{ color: 'var(--es-text-muted)' }}>
-              &copy; {new Date().getFullYear()} EchoSphere. All rights reserved.
+              &copy; {new Date().getFullYear()} SonaAI. All rights reserved.
             </p>
             <div className="flex items-center gap-2">
               <span className="text-xs" style={{ color: 'var(--es-text-muted)' }}>

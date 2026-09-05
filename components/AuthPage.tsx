@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -72,7 +72,7 @@ export default function AuthPage() {
             className="text-2xl font-bold"
             style={{ color: 'var(--es-text-primary)', letterSpacing: '-1.44px' }}
           >
-            Welcome to EchoSphere
+            Welcome to SonaAI
           </h1>
           <p
             className="mt-1.5 text-sm"
