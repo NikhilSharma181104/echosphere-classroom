@@ -45,48 +45,115 @@ export function QuickstartTranscriptPanel({
 
   return (
     <section
-      className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-border bg-card/20"
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[var(--es-radius-lg)]"
+      style={{
+        background: 'var(--es-page-bg)',
+        border: '1px solid var(--es-border-subtle)',
+        boxShadow: 'var(--es-card-shadow)',
+      }}
       aria-label="Transcription panel"
     >
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+      {/* Header */}
+      <div
+        className="flex h-14 shrink-0 items-center justify-between px-4"
+        style={{ borderBottom: '1px solid var(--es-border-subtle)' }}
+      >
         <div>
-          <h2 className="text-sm font-semibold text-foreground">Transcript</h2>
-          <p className="text-xs text-muted-foreground">Live voice turns</p>
+          <h2
+            className="text-sm font-semibold"
+            style={{ color: 'var(--es-text-primary)', letterSpacing: '-0.16px' }}
+          >
+            Transcript
+          </h2>
+          <p
+            className="text-xs"
+            style={{
+              color: 'var(--es-text-muted)',
+              fontFamily: 'monospace',
+              fontSize: '11px',
+              letterSpacing: '-0.325px',
+            }}
+          >
+            live voice turns
+          </p>
+        </div>
+        {/* Live indicator */}
+        <div className="flex items-center gap-1.5">
+          <span
+            className="inline-block h-2 w-2 rounded-full animate-pulse-subtle"
+            style={{ background: '#22c55e' }}
+          />
+          <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--es-text-muted)' }}>
+            Live
+          </span>
         </div>
       </div>
 
+      {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
       >
         {messages.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
-            Start speaking to see the live transcript here.
+          <div className="flex h-full items-center justify-center text-center">
+            <p className="text-sm" style={{ color: 'var(--es-text-muted)', letterSpacing: '-0.16px' }}>
+              Start speaking to see the live transcript here.
+            </p>
           </div>
         ) : (
           messages.map((message, index) => {
             const isAgent = String(message.uid) === agentUID;
-            const label = isAgent ? 'Agent' : 'You';
+            const label = isAgent ? 'SonaAI' : 'You';
             const text = message.text?.trim();
             const time = formatMessageTime(message.createdAt);
+
+            // Get initials for avatar
+            const initials = isAgent ? 'AI' : 'ME';
 
             return (
               <article
                 key={`${message.turn_id ?? message.uid}-${index}`}
-                className={`flex flex-col ${isAgent ? 'items-start' : 'items-end'}`}
+                className={`flex gap-2.5 ${isAgent ? '' : 'flex-row-reverse'}`}
               >
-                <div className="mb-1 flex items-center gap-2 px-1 text-xs font-semibold text-muted-foreground">
-                  <span>{label}</span>
-                  {time && <span className="font-normal">{time}</span>}
-                </div>
+                {/* Avatar */}
                 <div
-                  className={`max-w-full whitespace-pre-wrap rounded-xl border px-3 py-2 text-sm leading-6 ${
-                    isAgent
-                      ? 'border-[#2f2f2f] bg-[#212121] text-[#e7e7e7]'
-                      : 'border-[#d7d7d7] bg-[#fdfcfb] text-black'
-                  }`}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+                  style={{
+                    background: isAgent ? 'var(--es-action-primary)' : 'var(--es-panel-bg-2)',
+                    color: isAgent ? '#ffffff' : 'var(--es-text-primary)',
+                  }}
                 >
-                  {text || '...'}
+                  {initials}
+                </div>
+
+                {/* Bubble */}
+                <div className={`flex max-w-[85%] flex-col ${isAgent ? 'items-start' : 'items-end'}`}>
+                  <div className="mb-1 flex items-center gap-2 px-0.5">
+                    <span
+                      className="text-[11px] font-semibold"
+                      style={{ color: 'var(--es-text-muted)' }}
+                    >
+                      {label}
+                    </span>
+                    {time && (
+                      <span
+                        className="text-[10px] font-normal"
+                        style={{ color: 'var(--es-text-muted)' }}
+                      >
+                        {time}
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="whitespace-pre-wrap rounded-[var(--es-radius-md)] px-3 py-2 text-[13px] leading-[20px]"
+                    style={{
+                      background: isAgent ? 'var(--es-panel-bg-2)' : 'var(--es-action-primary)',
+                      color: isAgent ? 'var(--es-text-primary)' : '#ffffff',
+                      letterSpacing: '-0.16px',
+                    }}
+                  >
+                    {text || '…'}
+                  </div>
                 </div>
               </article>
             );

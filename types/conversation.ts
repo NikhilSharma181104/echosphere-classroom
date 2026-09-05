@@ -70,6 +70,11 @@ export interface ConversationComponentProps {
    * Set to true immediately before calling /api/inject-think.
    */
   summaryMode?: boolean;
+  /**
+   * Called when an agent_session RTM message is received from another participant.
+   * Used by student clients to obtain the agent_id the teacher broadcast on join.
+   */
+  onAgentId?: (agentId: string) => void;
   onTokenWillExpire: (uid: string) => Promise<AgoraRenewalTokens>;
   onEndConversation: () => void;
 }

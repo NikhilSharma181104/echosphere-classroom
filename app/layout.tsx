@@ -1,5 +1,13 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -8,9 +16,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Talk to your voice agent | Agora',
+  title: 'EchoSphere Classroom — AI-Powered Live Learning',
   description:
-    "Next.js quickstart: real-time voice agent with live transcript, streaming audio, and low latency from Agora's Conversational AI Engine—API routes in one repo.",
+    'EchoSphere Classroom brings AI-powered voice agents into live classrooms. Real-time transcripts, intelligent co-teaching, and seamless collaboration for teachers and students.',
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -39,8 +47,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className="h-full min-h-screen">{children}</body>
+    <html lang="en" className={`h-full ${inter.variable}`}>
+      <body
+        className="h-full min-h-screen"
+        style={{ fontFamily: 'var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif' }}
+      >
+        {children}
+      </body>
     </html>
   );
 }

@@ -114,6 +114,7 @@ export default function ConversationComponent({
   onTranscriptTurn,
   onSummaryTurn,
   summaryMode = false,
+  onAgentId,
   onTokenWillExpire,
   onEndConversation,
 }: ConversationComponentProps) {
@@ -141,6 +142,10 @@ export default function ConversationComponent({
   const summaryModeRef = useRef(summaryMode);
   useEffect(() => { summaryModeRef.current = summaryMode; }, [summaryMode]);
   const summaryCaptured = useRef(false);
+
+  // Stable ref for onAgentId so the RTM listener doesn't need re-registration.
+  const onAgentIdRef = useRef(onAgentId);
+  useEffect(() => { onAgentIdRef.current = onAgentId; }, [onAgentId]);
 
   // Tracks granular RTC connection state for the status dot.
   // Agora states: DISCONNECTED | CONNECTING | CONNECTED | DISCONNECTING | RECONNECTING
@@ -291,7 +296,7 @@ export default function ConversationComponent({
 
             const turn: TranscriptTurn & { type: "transcript_turn" } = {
               type: "transcript_turn",
-              name: isAgent ? "EchoSphere" : userSession.name,
+              name: isAgent ? "SonaAI" : userSession.name,
               role: isAgent ? "agent" : userSession.role,
               text: typeof item.text === "string" ? item.text : "",
               timestamp: Date.now(),
@@ -443,6 +448,18 @@ export default function ConversationComponent({
       // We skip turns from ourselves (already handled in TRANSCRIPT_UPDATED above).
       if (isTranscriptTurnPayload(parsed)) {
         onTranscriptTurnRef.current?.(parsed);
+      }
+
+      // Receive the agent_id the teacher broadcast when the agent session started.
+      // This enables the chat input on student clients (and any client that joined
+      // before receiving the agent_id via the initial token/metadata path).
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        (parsed as { type?: unknown }).type === 'agent_session' &&
+        typeof (parsed as { agent_id?: unknown }).agent_id === 'string'
+      ) {
+        onAgentIdRef.current?.((parsed as { agent_id: string }).agent_id);
       }
     };
 
@@ -673,7 +690,7 @@ export default function ConversationComponent({
               type="text"
               value={chatText}
               onChange={(e) => setChatText(e.target.value)}
-              placeholder="Type a message to EchoSphere…"
+              placeholder="Type a message to SonaAI…"
               disabled={isChatSending || summaryMode || !agoraData.agentId}
               maxLength={500}
               className="flex-1 rounded-full border border-border bg-card/80 px-4 py-1.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-40 backdrop-blur-md"

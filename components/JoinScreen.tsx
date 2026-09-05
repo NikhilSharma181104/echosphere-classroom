@@ -58,7 +58,7 @@ export function JoinScreen({ isLoading, error, onJoin }: JoinScreenProps) {
       }}
     >
       <h1 className="text-[28px] font-medium leading-[1.2] text-white">
-        Join EchoSphere
+        Join SonaAI
       </h1>
       <p className="mt-[14px] text-sm font-medium leading-6 text-muted-foreground">
         AI-powered live classroom — enter your details to join.

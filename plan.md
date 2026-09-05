@@ -1,4 +1,5 @@
-# EchoSphere — Voice AI Co-Teacher for Live Classrooms
+# SonaAI — Voice AI Co-Teacher for Live Classrooms
+
 ### Project Plan (Hackathon Build)
 
 ---
@@ -6,6 +7,7 @@
 ## 1. Problem Statement (Recap)
 
 Build a voice AI co-teacher that joins a **live digital classroom** with a teacher and multiple students. It should:
+
 - Understand the ongoing lesson in real time
 - Speak only at the right moments (never interrupt the teacher)
 - Give contextual answers, run spoken quizzes, and adapt explanations per student
@@ -20,30 +22,30 @@ Build a voice AI co-teacher that joins a **live digital classroom** with a teach
 
 ## 2. Roles
 
-| Role | Responsibility |
-|---|---|
-| **You (builder)** | Middle man — makes decisions, runs tools, tests, submits, presents |
-| **Claude (this chat)** | Guide — plans architecture, writes exact prompts for Kiro/Antigravity, debugs |
-| **Kiro** | Writes actual application code from Claude's prompts |
-| **Antigravity** | Designs UI screens (teacher dashboard, student view) |
-| **Agora Conversational AI** | Real-time voice layer — mandatory |
-| **Gemini API** | LLM brain — context understanding, decision-making, multilingual |
-| **Azure** | Backend hosting + database (student identity, transcripts, summaries) |
+| Role                        | Responsibility                                                                |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| **You (builder)**           | Middle man — makes decisions, runs tools, tests, submits, presents            |
+| **Claude (this chat)**      | Guide — plans architecture, writes exact prompts for Kiro/Antigravity, debugs |
+| **Kiro**                    | Writes actual application code from Claude's prompts                          |
+| **Antigravity**             | Designs UI screens (teacher dashboard, student view)                          |
+| **Agora Conversational AI** | Real-time voice layer — mandatory                                             |
+| **Gemini API**              | LLM brain — context understanding, decision-making, multilingual              |
+| **Azure**                   | Backend hosting + database (student identity, transcripts, summaries)         |
 
 ---
 
 ## 3. Tech Stack
 
-| Layer | Tool | Notes |
-|---|---|---|
-| Voice/Real-time layer | **Agora Conversational AI** | Mandatory. Handles audio streaming, VAD (turn-taking), agent orchestration |
-| STT | Agora-managed (Deepgram, model nova-3) | No separate key needed, part of Agora free minutes |
-| TTS | Agora-managed (MiniMax) | No separate key needed |
-| LLM | **Agora-managed OpenAI (gpt-4o-mini)** | Reverted from Gemini after hitting model deprecation (404) and high-demand (503) errors during build — see Section 4c. Zero external key needed, proven stable. |
-| Frontend | **Next.js** (`agent-quickstart-nextjs` template) | Pre-wired Agora setup; classroom UI, join screen, role selection |
-| Backend / DB | **Azure** (planned, not yet started) | Deferred — current build uses in-session state + RTM broadcast instead (see Section 4c) |
-| UI Design | **Antigravity** | Not yet used |
-| Code generation | **Kiro** | Executes Claude's step-by-step prompts to build the app |
+| Layer                 | Tool                                             | Notes                                                                                                                                                           |
+| --------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Voice/Real-time layer | **Agora Conversational AI**                      | Mandatory. Handles audio streaming, VAD (turn-taking), agent orchestration                                                                                      |
+| STT                   | Agora-managed (Deepgram, model nova-3)           | No separate key needed, part of Agora free minutes                                                                                                              |
+| TTS                   | Agora-managed (MiniMax)                          | No separate key needed                                                                                                                                          |
+| LLM                   | **Agora-managed OpenAI (gpt-4o-mini)**           | Reverted from Gemini after hitting model deprecation (404) and high-demand (503) errors during build — see Section 4c. Zero external key needed, proven stable. |
+| Frontend              | **Next.js** (`agent-quickstart-nextjs` template) | Pre-wired Agora setup; classroom UI, join screen, role selection                                                                                                |
+| Backend / DB          | **Azure** (planned, not yet started)             | Deferred — current build uses in-session state + RTM broadcast instead (see Section 4c)                                                                         |
+| UI Design             | **Antigravity**                                  | Not yet used                                                                                                                                                    |
+| Code generation       | **Kiro**                                         | Executes Claude's step-by-step prompts to build the app                                                                                                         |
 
 ---
 
@@ -99,6 +101,7 @@ classroom code). No cross-talk between different classrooms; sessions are epheme
 ## 4a. Confirmed: Base Template Is Voice-Only, Single-User
 
 Investigation of `agent-quickstart-nextjs` (via AGENTS.md + architecture diagram) confirms:
+
 - Template = **one browser user + one AI agent**, audio-only (mic + transcript + visualizer). No video, no multi-party.
 - Underlying Agora RTC SDK (`agora-rtc-sdk-ng`) DOES support many participants — we are extending
   the **UI/app layer**, not fighting the SDK.
@@ -108,6 +111,7 @@ Investigation of `agent-quickstart-nextjs` (via AGENTS.md + architecture diagram
   `RtcTokenBuilder.buildTokenWithRtm`.
 
 **Revised Step 4 becomes two build tracks on top of the existing voice foundation:**
+
 1. Add video tracks + a small grid UI (teacher + student tiles, camera on/off)
 2. Add multi-user join flow with name + role + classroom code (extending the current single-user join)
 
@@ -186,36 +190,39 @@ Keep the original sections for historical context, but treat THIS section as gro
 
 ## 5. Feature-to-Requirement Mapping
 
-| Requirement | How it's implemented |
-|---|---|
-| Real-time participation | Agora RTC channel + Conversational AI agent, always listening |
-| Teacher/student role awareness | Role tag set at join (teacher/student), passed in every LLM prompt |
-| Appropriate turn-taking | Agora VAD detects speech/pauses; AI only speaks in silence gaps, never mid-teacher-speech; teacher speech has priority weighting |
-| Contextual answers | Rolling lesson transcript fed into Gemini prompt as context window |
-| Different explanation levels | Per-student profile (grade level / past performance) stored in Azure, injected into prompt to adjust complexity |
-| Spoken quizzes | AI-triggered Q&A flow via TTS, answers captured via STT, graded by Gemini |
-| Multilingual / code-switching | Gemini handles natively — no separate translation layer |
-| Student identification | Session/user ID assigned at join, tied to Azure student profile |
-| Post-class summary | Transcript + logged gaps sent to Gemini after session ends → structured summary → Azure storage → dashboard view |
-| Teacher control/override | Teacher-only control panel (mute AI, force response, dismiss suggestion) via Agora signaling channel |
+| Requirement                    | How it's implemented                                                                                                             |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Real-time participation        | Agora RTC channel + Conversational AI agent, always listening                                                                    |
+| Teacher/student role awareness | Role tag set at join (teacher/student), passed in every LLM prompt                                                               |
+| Appropriate turn-taking        | Agora VAD detects speech/pauses; AI only speaks in silence gaps, never mid-teacher-speech; teacher speech has priority weighting |
+| Contextual answers             | Rolling lesson transcript fed into Gemini prompt as context window                                                               |
+| Different explanation levels   | Per-student profile (grade level / past performance) stored in Azure, injected into prompt to adjust complexity                  |
+| Spoken quizzes                 | AI-triggered Q&A flow via TTS, answers captured via STT, graded by Gemini                                                        |
+| Multilingual / code-switching  | Gemini handles natively — no separate translation layer                                                                          |
+| Student identification         | Session/user ID assigned at join, tied to Azure student profile                                                                  |
+| Post-class summary             | Transcript + logged gaps sent to Gemini after session ends → structured summary → Azure storage → dashboard view                 |
+| Teacher control/override       | Teacher-only control panel (mute AI, force response, dismiss suggestion) via Agora signaling channel                             |
 
 ---
 
 ## 6. Build Phases (updated with actual progress)
 
 **Phase 1 — Foundation** ✅ DONE
+
 - Next.js quickstart template set up, Agora App ID/Certificate connected
 - Gemini attempted, abandoned (see 4c) — Agora-managed OpenAI is the working LLM
 - Basic voice in/out confirmed working
 
 **Phase 2 — Classroom Roles & Identity** ✅ MOSTLY DONE (no video)
+
 - Join screen: name + role + classroom code — DONE (`JoinScreen.tsx`)
 - Room isolation via classroom-code-as-channel-name — DONE, verified with multi-tab test
 - Teacher vs student view differences — DONE (teacher-only mute/unmute controls)
 - Video/audio grid UI — NOT DONE, deprioritized (see 4c)
 
 **Phase 3 — Context & Turn-Taking Logic** ✅ MOSTLY DONE
-- Classroom system prompt (ECHOSPHERE_PROMPT) — DONE
+
+- Classroom system prompt (SONAAI_PROMPT) — DONE
 - Turn-taking: AI waits for pauses, doesn't interrupt teacher, can itself be
   interrupted — DONE, tuned (see 4c)
 - Rolling transcript buffer — partial: uses `maxHistory: 15` (conversation window),
@@ -223,16 +230,19 @@ Keep the original sections for historical context, but treat THIS section as gro
 - Silent gap-logging logic — NOT YET, planned as part of Phase 6 rework below
 
 **Phase 4 — Adaptive Teaching Features** ❌ NOT STARTED
+
 - Per-student explanation-level adjustment — blocked on student identity (being solved
   via Phase 6 rework below)
 - Spoken quiz flow — not started
 - Multilingual handling — should work via OpenAI natively, not explicitly tested yet
 
 **Phase 5 — Teacher Controls** ✅ DONE
+
 - Mute/Unmute AI button, teacher-only visibility — DONE (full stop/restart under the
   hood, see 4c for limitation)
 
 **Phase 6 — Post-Class Intelligence** 🔄 IN PROGRESS (reworked approach)
+
 - Original plan: Azure-stored summary. Current approach: RTM-broadcast tagged
   transcript (each client sends its own completed turns with name/role over RTM;
   teacher's client compiles the full attributed log) → sent to OpenAI at
@@ -241,6 +251,7 @@ Keep the original sections for historical context, but treat THIS section as gro
   summary is generated and displayed in-session only, not persisted.
 
 **Phase 7 — Polish & Demo Prep** — NOT STARTED
+
 - UI polish, demo video recording, final submission
 
 ---

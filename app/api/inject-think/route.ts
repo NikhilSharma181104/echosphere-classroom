@@ -1,17 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { AgoraClient, Area } from 'agora-agents';
-
-// The structured summary prompt sent to the agent at end-of-class.
-// Exported so the summary flow can import it without duplicating the string.
-// Headers are deliberately ALL-CAPS so the client can parse sections reliably.
-export const SUMMARY_PROMPT =
-  'Class is ending. Based on our conversation today, please give a structured post-class summary using EXACTLY these three section headers on their own lines: ' +
-  'OVERALL SUMMARY, COMMON LEARNING GAPS, STUDENTS NEEDING SUPPORT. ' +
-  'Under OVERALL SUMMARY write 2-3 sentences describing what was covered. ' +
-  'Under COMMON LEARNING GAPS list the concepts multiple students seemed to struggle with. ' +
-  'Under STUDENTS NEEDING SUPPORT list each student by name with a brief reason why they may need follow-up. ' +
-  'If there are no gaps or no students needing support, say "None identified." ' +
-  'Keep the entire response factual, concise, and based only on what was actually discussed.';
+import { SUMMARY_PROMPT } from '@/lib/prompts';
 
 export interface InjectThinkRequest {
   agent_id: string;
