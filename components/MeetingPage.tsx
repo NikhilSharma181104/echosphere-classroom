@@ -622,64 +622,28 @@ export default function MeetingPage() {
                       userSession={userSession}
                       teacherControls={
                         userSession.role === "teacher" ? (
-                          <>
                             <button
                               type="button"
                               onClick={
                                 isAiMuted ? handleUnmuteAi : handleMuteAi
                               }
                               disabled={isAiMuteLoading}
-                              className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
-                              style={{
-                                borderColor: isAiMuted
-                                  ? "var(--es-action-primary)"
-                                  : "#f59e0b",
-                                color: isAiMuted
-                                  ? "var(--es-action-primary)"
-                                  : "#f59e0b",
-                              }}
+                              className="flex items-center gap-2 rounded-full bg-[#3C4043] px-4 py-2.5 text-xs font-medium text-white/90 transition-colors hover:bg-[#4d5155] disabled:opacity-50 border-none shadow-lg"
                               aria-label={
                                 isAiMuted
                                   ? "Unmute AI co-teacher"
                                   : "Mute AI co-teacher"
                               }
-                              title={
-                                isAiMuted
-                                  ? "Resume AI responses"
-                                  : "Silence AI — stops it from responding until unmuted"
-                              }
                             >
                               {isAiMuteLoading ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
+                                <Loader2 className="h-4 w-4 animate-spin" />
                               ) : isAiMuted ? (
-                                <Volume2 className="h-3 w-3" />
+                                <Volume2 className="h-4 w-4" />
                               ) : (
-                                <VolumeX className="h-3 w-3" />
+                                <VolumeX className="h-4 w-4" />
                               )}
                               {isAiMuted ? "Unmute AI" : "Mute AI"}
                             </button>
-                            <button
-                              type="button"
-                              onClick={handleEndClassAndSummary}
-                              disabled={
-                                summaryState === "requesting" ||
-                                summaryState === "waiting"
-                              }
-                              className="flex items-center gap-1.5 rounded-full border border-primary px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
-                              aria-label="End class and generate summary"
-                              title="Ends the class and asks the AI to generate a structured summary"
-                            >
-                              {summaryState === "requesting" ||
-                              summaryState === "waiting" ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <FileText className="h-3 w-3" />
-                              )}
-                              {summaryState === "waiting"
-                                ? "Generating…"
-                                : "End Class & Summary"}
-                            </button>
-                          </>
                         ) : undefined
                       }
                       onTranscriptTurn={handleTranscriptTurn}

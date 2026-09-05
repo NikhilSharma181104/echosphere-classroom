@@ -131,10 +131,10 @@ export function MicrophoneSelector({
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full w-10 h-10 bg-secondary hover:bg-accent/10 border border-border"
+          className="rounded-full w-10 h-10 bg-[#3C4043] hover:bg-[#4d5155] border-none text-white/70 hover:text-white"
           title="Select microphone"
         >
-          <Settings className="h-4 w-4 text-foreground" />
+          <Settings className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       {/* Device menu: current selection plus all discovered microphones. */}

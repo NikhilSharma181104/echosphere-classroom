@@ -692,59 +692,52 @@ export default function ConversationComponent({
         </div>
       }
       controls={
-        <div className="flex flex-col items-center gap-2 w-full max-w-2xl mx-auto">
-          {/* Audio controls pill */}
-          <div
-            className="flex w-fit items-center gap-3 rounded-full border border-border bg-card/80 px-4 py-2 backdrop-blur-md"
-            role="group"
-            aria-label="Audio controls"
-          >
-            <div className="conversation-mic-host flex items-center justify-center">
-              <MicButtonWithVisualizer
-                isEnabled={isEnabled}
-                setIsEnabled={setIsEnabled}
-                track={localMicrophoneTrack}
-                onToggle={handleMicToggle}
-                className="overflow-visible"
-                aria-label={isEnabled ? "Mute microphone" : "Unmute microphone"}
-                enabledColor="hsl(var(--primary))"
-                disabledColor="hsl(var(--destructive))"
-              />
-            </div>
-            <MicrophoneSelector localMicrophoneTrack={localMicrophoneTrack} />
-            {teacherControls}
-          </div>
-
-          {/* Text-chat fallback — visible to all participants */}
-          <form
-            onSubmit={(e) => { e.preventDefault(); void handleSendChat(); }}
-            className="flex w-full max-w-md items-center gap-2"
-            aria-label="Type a message to the AI"
-          >
-            <input
-              type="text"
-              value={chatText}
-              onChange={(e) => setChatText(e.target.value)}
-              placeholder="Type a message to SonaAI…"
-              disabled={isChatSending || (summaryModeRef?.current ?? false) || !agoraData.agentId}
-              maxLength={500}
-              className="flex-1 rounded-full border border-border bg-card/80 px-4 py-1.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-40 backdrop-blur-md"
-              aria-label="Chat message input"
-            />
-            <button
-              type="submit"
-              disabled={!chatText.trim() || isChatSending || (summaryModeRef?.current ?? false) || !agoraData.agentId}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-primary bg-primary text-black transition-colors hover:bg-white disabled:opacity-40"
-              aria-label="Send message"
-            >
-              {isChatSending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <SendHorizontal className="h-3.5 w-3.5" />
-              )}
-            </button>
-          </form>
+        <div className="conversation-mic-host flex items-center justify-center">
+          <MicButtonWithVisualizer
+            isEnabled={isEnabled}
+            setIsEnabled={setIsEnabled}
+            track={localMicrophoneTrack}
+            onToggle={handleMicToggle}
+            className="overflow-visible"
+            aria-label={isEnabled ? "Mute microphone" : "Unmute microphone"}
+            enabledColor="hsl(var(--primary))"
+            disabledColor="hsl(var(--destructive))"
+          />
         </div>
+      }
+      micSelector={
+        <MicrophoneSelector localMicrophoneTrack={localMicrophoneTrack} />
+      }
+      aiMuteControl={teacherControls}
+      chatInput={
+        <form
+          onSubmit={(e) => { e.preventDefault(); void handleSendChat(); }}
+          className="flex w-full items-center gap-2 mt-2"
+          aria-label="Type a message to the AI"
+        >
+          <input
+            type="text"
+            value={chatText}
+            onChange={(e) => setChatText(e.target.value)}
+            placeholder="Ask anything about the meeting..."
+            disabled={isChatSending || (summaryModeRef?.current ?? false) || !agoraData.agentId}
+            maxLength={500}
+            className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 disabled:opacity-50 shadow-sm"
+            aria-label="Chat message input"
+          />
+          <button
+            type="submit"
+            disabled={!chatText.trim() || isChatSending || (summaryModeRef?.current ?? false) || !agoraData.agentId}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-none bg-[#D0FFA2] text-[#031A10] transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 shadow-sm"
+            aria-label="Send message"
+          >
+            {isChatSending ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <SendHorizontal className="h-5 w-5" />
+            )}
+          </button>
+        </form>
       }
       onEndConversation={handleEndConversation}
     />
