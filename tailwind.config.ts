@@ -90,11 +90,21 @@ const config: Config = {
   				to: {
   					height: '0'
   				}
+  			},
+  			'bounce-gentle': {
+  				'0%, 100%': { transform: 'translateY(0)' },
+  				'50%': { transform: 'translateY(-6px)' }
+  			},
+  			'pulse-slow': {
+  				'0%, 100%': { opacity: '1', transform: 'scale(1)' },
+  				'50%': { opacity: '0.85', transform: 'scale(1.03)' }
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'bounce-gentle': 'bounce-gentle 1.2s ease-in-out infinite',
+  			'pulse-slow': 'pulse-slow 2s ease-in-out infinite'
   		}
   	}
   },

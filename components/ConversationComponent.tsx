@@ -24,7 +24,7 @@ import {
   type UserTranscription,
   type AgentTranscription,
 } from "agora-agent-client-toolkit";
-import { AgentVisualizer } from "agora-agent-uikit";
+import { SonaAIExpression } from "@/components/SonaAIExpression";
 import { MicButtonWithVisualizer } from "agora-agent-uikit/rtc";
 import { Loader2, SendHorizontal } from "lucide-react";
 import { DEFAULT_AGENT_UID } from "@/lib/agora";
@@ -683,7 +683,7 @@ export default function ConversationComponent({
           role="region"
           aria-label="AI agent status visualization"
         >
-          <AgentVisualizer state={visualizerState} size="lg" />
+          <SonaAIExpression state={visualizerState} size="lg" />
           {remoteUsers.map((user) => (
             <div key={user.uid} className="hidden">
               <RemoteUser user={user} />

@@ -45,51 +45,26 @@ export function ClassroomTranscriptPanel({
 
   return (
     <section
-      className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl"
-      style={{
-        background: 'var(--es-panel-bg)',
-        border: '1px solid var(--es-border-subtle)',
-      }}
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden"
       aria-label="Transcription panel"
     >
-      {/* Header */}
-      <div
-        className="flex h-14 shrink-0 items-center justify-between px-4"
-        style={{ borderBottom: '1px solid var(--es-border-subtle)' }}
-      >
-        <div>
-          <h2
-            className="text-sm font-semibold"
-            style={{
-              color: 'var(--es-text-primary)',
-              letterSpacing: '-0.16px',
-              fontFamily: 'var(--font-manrope)',
-            }}
-          >
-            Transcript
-          </h2>
-          <p
-            className="text-xs"
-            style={{
-              color: 'var(--es-text-muted)',
-              fontFamily: 'monospace',
-              fontSize: '11px',
-              letterSpacing: '-0.325px',
-            }}
-          >
-            live voice turns
-          </p>
-        </div>
-        {/* Live indicator */}
+      {/* Live indicator */}
+      <div className="flex shrink-0 items-center justify-between pb-3">
+        <p
+          className="text-xs font-medium"
+          style={{
+            color: 'var(--es-text-muted, #6B7280)',
+            fontFamily: 'monospace',
+            fontSize: '11px',
+          }}
+        >
+          live voice turns
+        </p>
         <div className="flex items-center gap-1.5">
           <span
-            className="inline-block h-2 w-2 rounded-full animate-pulse-subtle"
-            style={{ background: 'var(--es-action-primary)' }}
+            className="inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse"
           />
-          <span
-            className="text-[10px] font-medium uppercase tracking-wider"
-            style={{ color: 'var(--es-text-muted)' }}
-          >
+          <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
             Live
           </span>
         </div>
@@ -98,14 +73,11 @@ export function ClassroomTranscriptPanel({
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto custom-scrollbar"
       >
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center">
-            <p
-              className="text-sm"
-              style={{ color: 'var(--es-text-muted)', letterSpacing: 'normal' }}
-            >
+            <p className="text-sm text-gray-400">
               Start speaking to see the live transcript here.
             </p>
           </div>
@@ -116,7 +88,6 @@ export function ClassroomTranscriptPanel({
             const text = message.text?.trim();
             const time = formatMessageTime(message.createdAt);
 
-            // Get initials for avatar
             const initials = isAgent ? 'AI' : 'ME';
 
             return (
@@ -126,11 +97,9 @@ export function ClassroomTranscriptPanel({
               >
                 {/* Avatar */}
                 <div
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                  style={{
-                    background: isAgent ? 'var(--es-action-primary)' : 'var(--es-panel-bg-2)',
-                    color: isAgent ? 'var(--es-on-primary)' : 'var(--es-text-primary)',
-                  }}
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                    isAgent ? 'bg-[#D0FFA2] text-[#031A10]' : 'bg-gray-200 text-gray-700'
+                  }`}
                 >
                   {initials}
                 </div>
@@ -140,28 +109,21 @@ export function ClassroomTranscriptPanel({
                   className={`flex max-w-[85%] flex-col ${isAgent ? 'items-start' : 'items-end'}`}
                 >
                   <div className="mb-1 flex items-center gap-2 px-0.5">
-                    <span
-                      className="text-[11px] font-semibold"
-                      style={{ color: 'var(--es-text-muted)' }}
-                    >
+                    <span className="text-[11px] font-semibold text-gray-500">
                       {label}
                     </span>
                     {time && (
-                      <span
-                        className="text-[10px] font-normal"
-                        style={{ color: 'var(--es-text-muted)' }}
-                      >
+                      <span className="text-[10px] font-normal text-gray-400">
                         {time}
                       </span>
                     )}
                   </div>
                   <div
-                    className="whitespace-pre-wrap rounded-xl px-3 py-2 text-[13px] leading-[20px]"
-                    style={{
-                      background: isAgent ? 'var(--es-panel-bg-2)' : 'var(--es-action-primary)',
-                      color: isAgent ? 'var(--es-text-primary)' : 'var(--es-on-primary)',
-                      letterSpacing: 'normal',
-                    }}
+                    className={`whitespace-pre-wrap rounded-xl px-4 py-3 text-[15px] leading-relaxed ${
+                      isAgent
+                        ? 'bg-white/80 text-gray-800 border border-gray-100'
+                        : 'bg-[#D0FFA2] text-[#031A10]'
+                    }`}
                   >
                     {text || '…'}
                   </div>

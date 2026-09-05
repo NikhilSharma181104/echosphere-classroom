@@ -12,7 +12,9 @@ import {
   Camera,
   Hand,
   MonitorUp,
-  MoreHorizontal
+  MoreHorizontal,
+  X,
+  ChevronLeft
 } from 'lucide-react';
 
 export type ClassroomConversationLayoutProps = {
@@ -38,7 +40,8 @@ export function ClassroomConversationLayout({
   chatInput,
   onEndConversation,
 }: ClassroomConversationLayoutProps) {
-  const [activeTab, setActiveTab] = useState<'ai' | 'notes' | 'transcript' | 'qa'>('ai');
+  const [activeTab, setActiveTab] = useState<'ai' | 'notes' | 'transcript' | 'qa'>('transcript');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const glassPanel = {
     background: 'rgba(255, 255, 255, 0.6)',
@@ -75,10 +78,8 @@ export function ClassroomConversationLayout({
              {pipelineMetrics}
           </div>
           <button className="hidden lg:flex items-center gap-1.5 bg-white/60 hover:bg-white/80 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors text-[#031A10]">
-            <LayoutGrid className="w-4 h-4" /> Layout
-          </button>
-          <button className="hidden lg:flex items-center gap-1.5 bg-white/60 hover:bg-white/80 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors text-[#031A10]">
             <Users className="w-4 h-4" /> 6
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse ml-0.5" />
           </button>
           <div className="h-8 w-8 rounded-full bg-[#D0FFA2] text-[#031A10] font-bold flex items-center justify-center shadow-sm">
             T
@@ -104,7 +105,7 @@ export function ClassroomConversationLayout({
             
             {/* Tile 2: SonaAI */}
             <div className="relative rounded-2xl overflow-hidden flex flex-col items-center justify-center bg-[#052329] border border-[#D0FFA2]/30">
-               <div className="scale-[1.2] origin-center">{visualizer}</div>
+               <div className="flex items-center justify-center">{visualizer}</div>
                <span className="absolute bottom-3 left-3 text-[#D0FFA2] text-sm font-semibold flex items-center gap-1.5 drop-shadow-md">
                  <Sparkles className="w-3.5 h-3.5" /> SonaAI
                </span>
@@ -121,7 +122,8 @@ export function ClassroomConversationLayout({
                 {/* Mic button with hover-reveal settings */}
                 <div className="relative group/mic flex items-center">
                   {controls}
-                  <div className="absolute -top-14 left-1/2 -translate-x-1/2 opacity-0 group-hover/mic:opacity-100 transition-opacity pointer-events-none group-hover/mic:pointer-events-auto">
+                  {/* Popup with invisible bridge padding so hover doesn't break */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 pb-2 opacity-0 group-hover/mic:opacity-100 transition-opacity duration-200 pointer-events-none group-hover/mic:pointer-events-auto">
                     <div className="bg-[#202124] rounded-full p-1 shadow-xl border border-white/10">
                       {micSelector}
                     </div>
@@ -164,80 +166,66 @@ export function ClassroomConversationLayout({
         </div>
 
         {/* Right Sidebar (Tabs) */}
-        <div className="w-[420px] hidden lg:flex flex-col rounded-[32px] overflow-hidden shadow-xl p-6" style={glassPanel}>
-          {/* Tabs */}
-          <div className="flex items-center justify-between border-b border-black/10 pb-4 mb-4">
-            {(['ai', 'notes', 'transcript', 'qa'] as const).map(tab => (
-              <button 
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`text-xs font-bold px-2 py-1 transition-colors relative ${activeTab === tab ? 'text-[#031A10]' : 'text-gray-500 hover:text-gray-800'}`}
-              >
-                {tab === 'ai' ? 'AI Assistant' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                {activeTab === tab && (
-                  <div className="absolute -bottom-4 left-0 right-0 h-[3px] rounded-t-full bg-[#031A10]" />
-                )}
-              </button>
-            ))}
+        {isSidebarOpen && (
+          <div className="w-[30%] hidden lg:flex flex-col rounded-[32px] overflow-hidden shadow-xl p-6 transition-all duration-300 shrink-0" style={glassPanel}>
+          {/* Tabs & Close */}
+          <div className="flex items-center justify-between border-b border-black/10 pb-4 mb-4 shrink-0">
+            <div className="flex items-center gap-1">
+              {(['transcript', 'qa', 'notes', 'ai'] as const).map(tab => (
+                <button 
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`text-sm font-bold px-3 py-1.5 transition-colors relative ${activeTab === tab ? 'text-[#031A10]' : 'text-gray-400 hover:text-gray-700'}`}
+                >
+                  {tab === 'ai' ? 'AI Assistant' : tab === 'qa' ? 'Q&A' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {activeTab === tab && (
+                    <div className="absolute -bottom-4 left-0 right-0 h-[3px] rounded-t-full bg-[#031A10]" />
+                  )}
+                </button>
+              ))}
+            </div>
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-1 hover:bg-black/5 rounded-full transition-colors -mr-2"
+              title="Close sidebar"
+            >
+              <X className="w-5 h-5 text-gray-400 hover:text-gray-800" />
+            </button>
           </div>
 
+          {/* Tab Content */}
           <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar relative">
-            {activeTab === 'transcript' && transcriptPanel}
+            {/* Transcript tab - blended with sidebar, no dark window */}
+            {activeTab === 'transcript' && (
+              <div className="h-full flex flex-col">
+                {transcriptPanel}
+              </div>
+            )}
             
+            {/* AI Assistant tab - system description only */}
             {activeTab === 'ai' && (
-              <div className="flex flex-col gap-6 h-full pb-4">
-                 {/* SonaAI Listening Status */}
-                 <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+              <div className="flex flex-col gap-4 h-full">
+                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+                   <img src="/SonaAI%20icon1.png" className="w-14 h-14 object-contain rounded-xl shrink-0" />
                    <div>
-                     <p className="text-sm font-bold text-[#031A10] flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-green-500"/> SonaAI is listening...</p>
-                     <p className="text-[10px] text-gray-500 mt-1 max-w-[180px]">It can take notes, summarize and answer questions for you.</p>
+                     <p className="text-sm font-bold text-[#031A10] flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-green-500"/> SonaAI Co-Teacher</p>
+                     <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">Your AI co-teacher is here to help explain concepts, answer questions, and support the classroom experience in real-time.</p>
                    </div>
-                   <img src="/SonaAI%20icon1.png" className="w-12 h-12 object-contain rounded-xl" />
                  </div>
 
-                 {/* Meeting Summary */}
-                 <div>
-                   <div className="flex items-center justify-between mb-3">
-                     <h3 className="text-sm font-bold text-[#031A10]">Meeting Summary (Live)</h3>
-                   </div>
-                   <ul className="text-xs text-gray-600 space-y-2.5 list-disc pl-4 mb-4 font-medium">
-                     <li>Discussed Q2 product roadmap and key priorities.</li>
-                     <li>Decided to focus on <strong>AI feature enhancement</strong>.</li>
-                     <li><strong>Marketing campaign</strong> for launch in May.</li>
-                     <li>Next review <strong>meeting on April 30</strong>.</li>
+                 <div className="bg-white/50 rounded-2xl p-4 border border-gray-100">
+                   <h4 className="text-xs font-bold text-[#031A10] mb-2">What SonaAI can do</h4>
+                   <ul className="text-xs text-gray-600 space-y-2 list-disc pl-4">
+                     <li>Answer student questions in real-time</li>
+                     <li>Explain complex topics with examples</li>
+                     <li>Generate quizzes and summaries</li>
+                     <li>Take notes during the session</li>
                    </ul>
-                   <button className="bg-[#D0FFA2]/30 text-[#031A10] text-xs font-bold px-4 py-2 rounded-lg hover:bg-[#D0FFA2]/50 transition-colors w-max">
-                     View Full Summary
-                   </button>
-                 </div>
-
-                 {/* Action Items */}
-                 <div>
-                   <h3 className="text-sm font-bold text-[#031A10] mb-3">Action Items</h3>
-                   <div className="space-y-4">
-                     <div className="flex items-center gap-3 bg-white/50 p-2 rounded-xl">
-                       <div className="w-4 h-4 rounded-full border border-gray-300 shrink-0 bg-white flex items-center justify-center"></div>
-                       <p className="text-xs text-gray-700 flex-1"><strong>Neha</strong> to share the updated roadmap</p>
-                       <span className="text-[9px] font-bold text-gray-400 bg-white px-2 py-1 rounded-full shadow-sm">Due Apr 25</span>
-                     </div>
-                     <div className="flex items-center gap-3 bg-white/50 p-2 rounded-xl">
-                       <div className="w-4 h-4 rounded-full border border-gray-300 shrink-0 bg-white flex items-center justify-center"></div>
-                       <p className="text-xs text-gray-700 flex-1"><strong>Arjun</strong> to prepare AI feature demo</p>
-                       <span className="text-[9px] font-bold text-gray-400 bg-white px-2 py-1 rounded-full shadow-sm">Due Apr 22</span>
-                     </div>
-                     <div className="flex items-center gap-3 bg-white/50 p-2 rounded-xl">
-                       <div className="w-4 h-4 rounded-full border border-gray-300 shrink-0 bg-white flex items-center justify-center"></div>
-                       <p className="text-xs text-gray-700 flex-1"><strong>Priya</strong> to draft marketing plan</p>
-                       <span className="text-[9px] font-bold text-gray-400 bg-white px-2 py-1 rounded-full shadow-sm">Due Apr 24</span>
-                     </div>
-                   </div>
-                   <button className="text-green-600 text-xs font-bold mt-4 flex items-center gap-1 hover:text-green-700 transition-colors">
-                     + Add Action Item
-                   </button>
                  </div>
               </div>
             )}
-            {/* Other tabs can be empty placeholders */}
+
+            {/* Q&A and Notes - placeholder */}
             {(activeTab === 'notes' || activeTab === 'qa') && (
               <div className="flex items-center justify-center h-full text-gray-400 text-sm font-medium">
                 Coming Soon
@@ -245,18 +233,30 @@ export function ClassroomConversationLayout({
             )}
           </div>
           
-          {/* Ask SonaAI Chat input area */}
+          {/* Ask SonaAI Chat input area - always visible */}
           <div className="mt-4 pt-4 border-t border-black/10 shrink-0">
-             <div className="mb-3 flex items-center justify-between">
+             <div className="mb-2">
                 <h3 className="text-sm font-bold text-[#031A10]">Ask SonaAI</h3>
              </div>
-             <div className="flex gap-2 mb-3 overflow-x-auto custom-scrollbar pb-1">
-                <button className="text-[10px] font-semibold text-gray-600 bg-white/60 hover:bg-white rounded-full px-3 py-1.5 shadow-sm border border-gray-100 whitespace-nowrap transition-colors">What are the key decisions?</button>
-                <button className="text-[10px] font-semibold text-gray-600 bg-white/60 hover:bg-white rounded-full px-3 py-1.5 shadow-sm border border-gray-100 whitespace-nowrap transition-colors">Summarize the last 10 minutes</button>
+             <div className="flex flex-wrap gap-2 mb-3">
+                <button className="text-xs font-semibold text-gray-600 bg-white hover:bg-gray-50 rounded-full px-3 py-1.5 shadow-sm border border-gray-200 whitespace-nowrap transition-colors">What are the key decisions?</button>
+                <button className="text-xs font-semibold text-gray-600 bg-white hover:bg-gray-50 rounded-full px-3 py-1.5 shadow-sm border border-gray-200 whitespace-nowrap transition-colors">Summarize the last 10 minutes</button>
              </div>
              {chatInput}
           </div>
         </div>
+        )}
+
+        {/* Sidebar Open Toggle */}
+        {!isSidebarOpen && (
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="hidden lg:flex absolute right-0 top-[104px] bg-white/80 hover:bg-white backdrop-blur-md shadow-xl border border-r-0 border-white/40 py-4 px-2 rounded-l-2xl items-center justify-center transition-all group z-50 cursor-pointer"
+            title="Open Sidebar"
+          >
+            <ChevronLeft className="w-6 h-6 text-gray-500 group-hover:text-[#031A10] group-hover:-translate-x-0.5 transition-all" />
+          </button>
+        )}
       </div>
     </div>
   );
