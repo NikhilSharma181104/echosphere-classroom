@@ -13,7 +13,22 @@ import {
   ArrowRight,
   Sparkles,
   ArrowUpRight,
+  LogOut,
+  User as UserIcon,
+  LayoutDashboard,
+  Video,
+  History,
+  Settings,
 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import type { UserRole } from '@/types/conversation';
+import { AnimatePresence } from 'framer-motion';
+
+type SessionData = {
+  name: string;
+  role: UserRole;
+  avatar_url?: string;
+};
 import { motion } from 'framer-motion';
 import { FilterableGrid } from './FilterableGrid';
 import { FAQAccordion } from './FAQAccordion';
@@ -22,9 +37,10 @@ import { TestimonialSlider } from './TestimonialSlider';
 /* ─────────────────────────────────────────────────────────────
    Floating pill-shaped dark nav (like reference images)
    ───────────────────────────────────────────────────────────── */
-function Navbar() {
+function Navbar({ session, handleSignOut }: { session: SessionData | null, handleSignOut: () => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -86,19 +102,84 @@ function Navbar() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <motion.a
-              href="/auth"
-              className="rounded-full px-5 py-2 text-sm font-bold"
-              whileHover={{ scale: 1.05, backgroundColor: '#bdec8a' }}
-              transition={{ duration: 0.2 }}
-              style={{
-                background: 'var(--es-action-primary)',
-                color: 'var(--es-on-primary)',
-                letterSpacing: '-0.16px',
-              }}
-            >
-              Get Started
-            </motion.a>
+            {session ? (
+              <div className="relative">
+                <button 
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  className="flex items-center gap-3 group cursor-pointer hover:bg-white/5 px-3 py-1.5 rounded-full transition-colors"
+                >
+                  {session.avatar_url ? (
+                    <img src={session.avatar_url} alt={session.name} className="w-8 h-8 rounded-full object-cover border border-white/20" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
+                      <UserIcon className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div className="flex flex-col text-left">
+                    <span className="text-sm font-bold text-white leading-tight">{session.name}</span>
+                    <span className="text-[10px] uppercase tracking-wider text-white/50">{session.role}</span>
+                  </div>
+                </button>
+
+                <AnimatePresence>
+                  {isProfileDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-4 w-56 rounded-2xl overflow-hidden shadow-2xl"
+                      style={{
+                        background: 'rgba(3, 26, 16, 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                      }}
+                    >
+                      <div className="p-2 flex flex-col gap-1">
+                        <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white text-sm font-medium">
+                          <LayoutDashboard className="w-4 h-4 text-white/70" />
+                          Dashboard
+                        </Link>
+                        <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white text-sm font-medium">
+                          <Video className="w-4 h-4 text-white/70" />
+                          Classes
+                        </Link>
+                        <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white text-sm font-medium">
+                          <History className="w-4 h-4 text-white/70" />
+                          History
+                        </Link>
+                        <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors text-white text-sm font-medium">
+                          <Settings className="w-4 h-4 text-white/70" />
+                          Settings
+                        </Link>
+                        <div className="h-px w-full bg-white/10 my-1" />
+                        <button 
+                          onClick={handleSignOut}
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 hover:text-red-400 transition-colors text-white text-sm font-medium w-full text-left"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <motion.a
+                href="/auth"
+                className="rounded-full px-5 py-2 text-sm font-bold"
+                whileHover={{ scale: 1.05, backgroundColor: '#bdec8a' }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  background: 'var(--es-action-primary)',
+                  color: 'var(--es-on-primary)',
+                  letterSpacing: '-0.16px',
+                }}
+              >
+                Get Started
+              </motion.a>
+            )}
           </div>
 
           {/* Mobile hamburger */}
@@ -144,16 +225,50 @@ function Navbar() {
                   {item}
                 </a>
               ))}
-              <Link
-                href="/auth"
-                className="mt-1 rounded-full px-5 py-2.5 text-center text-sm font-bold"
-                style={{
-                  background: 'var(--es-action-primary)',
-                  color: 'var(--es-on-primary)',
-                }}
-              >
-                Get Started
-              </Link>
+              {session ? (
+                <div className="mt-1 flex flex-col gap-3 border-t border-white/10 pt-3">
+                  <div className="flex items-center gap-3 px-2">
+                    {session.avatar_url ? (
+                      <img src={session.avatar_url} alt={session.name} className="w-8 h-8 rounded-full object-cover border border-white/20" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
+                        <UserIcon className="w-4 h-4" />
+                      </div>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-white leading-tight">{session.name}</span>
+                      <span className="text-[10px] uppercase tracking-wider text-white/50">{session.role}</span>
+                    </div>
+                  </div>
+                  <Link
+                    href="/dashboard"
+                    className="rounded-full px-5 py-2.5 text-center text-sm font-bold"
+                    style={{
+                      background: 'var(--es-action-primary)',
+                      color: 'var(--es-on-primary)',
+                    }}
+                  >
+                    Go to Dashboard
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="rounded-full px-5 py-2.5 text-center text-sm font-bold border border-white/20 text-white"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/auth"
+                  className="mt-1 rounded-full px-5 py-2.5 text-center text-sm font-bold"
+                  style={{
+                    background: 'var(--es-action-primary)',
+                    color: 'var(--es-on-primary)',
+                  }}
+                >
+                  Get Started
+                </Link>
+              )}
             </div>
           </div>
         )}
@@ -304,6 +419,41 @@ function SectionBadge({ children }: { children: React.ReactNode }) {
    ───────────────────────────────────────────────────────────── */
 export default function HomePage() {
   const [subscribed, setSubscribed] = useState(false);
+  const [session, setSession] = useState<SessionData | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session: supaSession } }) => {
+      if (supaSession) {
+        setSession({
+          name: supaSession.user.user_metadata?.name || supaSession.user.email?.split('@')[0] || 'User',
+          role: supaSession.user.user_metadata?.role || 'student',
+          avatar_url: supaSession.user.user_metadata?.custom_avatar_url || supaSession.user.user_metadata?.avatar_url || null,
+        });
+      } else {
+        setSession(null);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, supaSession) => {
+      if (supaSession) {
+        setSession({
+          name: supaSession.user.user_metadata?.name || supaSession.user.email?.split('@')[0] || 'User',
+          role: supaSession.user.user_metadata?.role || 'student',
+          avatar_url: supaSession.user.user_metadata?.custom_avatar_url || supaSession.user.user_metadata?.avatar_url || null,
+        });
+      } else {
+        setSession(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    sessionStorage.removeItem('echosphere_session');
+    setSession(null);
+  };
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -313,7 +463,7 @@ export default function HomePage() {
 
   return (
     <div>
-      <Navbar />
+      <Navbar session={session} handleSignOut={handleSignOut} />
 
       {/* ── HERO SECTION — dark forest bg ── */}
       <section

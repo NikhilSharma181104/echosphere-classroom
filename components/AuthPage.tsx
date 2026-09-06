@@ -32,17 +32,10 @@ export default function AuthPage() {
   const hasNumber = /[0-9]/.test(password);
   const hasSpecial = /[^A-Za-z0-9]/.test(password);
   const isPasswordValid = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
-  
-  const isDummyBypass = tab === 'signin' && email === 'demo@echosphere.edu' && (password === 'teacher123' || password === 'student123');
   const showValidationUI = tab === 'signup';
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newEmail = e.target.value;
-    if (email === 'demo@echosphere.edu' && newEmail !== email && (password === 'teacher123' || password === 'student123')) {
-      setPassword('');
-      setConfirmPassword('');
-    }
-    setEmail(newEmail);
+    setEmail(e.target.value);
   };
 
   useEffect(() => {
@@ -61,11 +54,9 @@ export default function AuthPage() {
   }, [router]);
 
   const canSubmit =
-    email.trim().length > 0 &&
-    (tab === 'signin' 
-      ? password.length >= 6 
-      : (name.trim().length > 0 && (isDummyBypass || (isPasswordValid && password === confirmPassword)))
-    ) &&
+    tab === 'signin' 
+      ? (email.trim().length > 0 && password.length > 0)
+      : (name.trim().length > 0 && isPasswordValid && password === confirmPassword) &&
     !isLoading;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,20 +64,6 @@ export default function AuthPage() {
     if (!canSubmit) return;
 
     setIsLoading(true);
-
-    // Dummy bypass logic for presentations
-    if (email === 'demo@echosphere.edu' && (password === 'teacher123' || password === 'student123')) {
-      const mockRole = password === 'teacher123' ? 'teacher' : 'student';
-      const session = {
-        name: name.trim() || (mockRole === 'teacher' ? 'Demo Teacher' : 'Demo Student'),
-        role: mockRole,
-        avatar_url: null,
-        timestamp: Date.now(),
-      };
-      sessionStorage.setItem('echosphere_session', JSON.stringify(session));
-      router.push('/dashboard');
-      return;
-    }
 
     // Real Supabase Auth
     try {

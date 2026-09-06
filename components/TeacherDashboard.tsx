@@ -19,10 +19,15 @@ import {
   ChevronRight
 } from 'lucide-react';
 import type { UserRole } from '@/types/conversation';
+import DashboardCalendar from './DashboardCalendar';
+import DashboardTasks from './DashboardTasks';
+import HistoryModal from './HistoryModal';
+import { supabase } from '@/lib/supabaseClient';
 
 type SessionData = {
   name: string;
   role: UserRole;
+  avatar_url?: string;
 };
 
 /** Generate a random 6-character alphanumeric classroom code. */
@@ -38,32 +43,48 @@ const glassPanel = {
   boxShadow: '0 8px 32px rgba(0,0,0,0.05)'
 };
 
-export default function TeacherDashboard({ session }: { session: SessionData }) {
+export default function TeacherDashboard({ session, onAvatarUpload }: { session: SessionData, onAvatarUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
   const router = useRouter();
   const [classroomCode, setClassroomCode] = useState('');
   const [codeCopied, setCodeCopied] = useState(false);
-  const [profilePic, setProfilePic] = useState<string | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [totalStudents, setTotalStudents] = useState<number | string>('...');
   const today = new Date();
   const currentMonth = today.toLocaleString('default', { month: 'long' });
   const currentYear = today.getFullYear();
   const currentDate = today.getDate();
-  const weekDays = Array.from({ length: 5 }).map((_, i) => {
-    const d = new Date(today);
-    d.setDate(currentDate + i - 2);
-    return {
-      d: d.toLocaleString('default', { weekday: 'short' }),
-      n: d.getDate(),
-      isToday: i === 2
-    };
-  });
 
-  const [selectedDate, setSelectedDate] = useState<number>(currentDate);
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setClassroomCode(generateClassroomCode());
-    const savedPic = localStorage.getItem('teacher_profile_pic');
-    if (savedPic) setProfilePic(savedPic);
+    // 1. Manage Classroom Code
+    const storedCode = localStorage.getItem('echosphere_teacher_code');
+    if (storedCode) {
+      setClassroomCode(storedCode);
+    } else {
+      const newCode = generateClassroomCode();
+      setClassroomCode(newCode);
+      localStorage.setItem('echosphere_teacher_code', newCode);
+    }
+
+    // 2. Fetch Stats
+    const fetchStats = async () => {
+      const { data: { session: supaSession } } = await supabase.auth.getSession();
+      if (!supaSession) return;
+      
+      // Calculate total students who joined classes taught by this teacher
+      // Since we don't have a direct relation between classes and teachers yet, 
+      // we'll just count total sessions the teacher has started.
+      const { count } = await supabase
+        .from('sessions_history')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', supaSession.user.id)
+        .eq('role', 'teacher');
+        
+      setTotalStudents(count || 0);
+    };
+    fetchStats();
   }, []);
 
   const handleCopyCode = useCallback(async () => {
@@ -77,12 +98,25 @@ export default function TeacherDashboard({ session }: { session: SessionData }) 
   }, [classroomCode]);
 
   const handleRegenerateCode = useCallback(() => {
-    setClassroomCode(generateClassroomCode());
+    const newCode = generateClassroomCode();
+    setClassroomCode(newCode);
+    localStorage.setItem('echosphere_teacher_code', newCode);
     setCodeCopied(false);
   }, []);
 
-  const handleStartTeaching = useCallback(() => {
+  const handleStartTeaching = useCallback(async () => {
     if (!session || !classroomCode) return;
+    
+    // Log session to history
+    const { data: { session: supaSession } } = await supabase.auth.getSession();
+    if (supaSession) {
+      await supabase.from('sessions_history').insert({
+        user_id: supaSession.user.id,
+        role: 'teacher',
+        class_code: classroomCode
+      });
+    }
+
     sessionStorage.setItem(
       'echosphere_meeting',
       JSON.stringify({
@@ -94,18 +128,7 @@ export default function TeacherDashboard({ session }: { session: SessionData }) 
     router.push('/meeting');
   }, [session, classroomCode, router]);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setProfilePic(base64String);
-        localStorage.setItem('teacher_profile_pic', base64String);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  // handlePhotoUpload logic moved to global DashboardPage
 
   return (
     <div className="grid h-full w-full grid-cols-1 md:grid-cols-4 md:grid-rows-3 gap-6 animate-fade-in pb-4">
@@ -118,7 +141,7 @@ export default function TeacherDashboard({ session }: { session: SessionData }) 
         <div 
           className="absolute inset-0 bg-cover bg-center z-0 transition-transform duration-500 group-hover:scale-105"
           style={{ 
-            backgroundImage: profilePic ? `url(${profilePic})` : 'url("/hero_classroom_1788611365675.jpg")',
+            backgroundImage: session.avatar_url ? `url(${session.avatar_url})` : 'url("/hero_classroom_1788611365675.jpg")',
             backgroundPosition: 'center 20%'
           }}
         />
@@ -135,7 +158,7 @@ export default function TeacherDashboard({ session }: { session: SessionData }) 
         <input 
           type="file" 
           ref={fileInputRef}
-          onChange={handlePhotoUpload}
+          onChange={onAvatarUpload}
           accept="image/*"
           className="hidden"
         />
@@ -202,8 +225,8 @@ export default function TeacherDashboard({ session }: { session: SessionData }) 
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-4xl font-black text-[#031A10] font-manrope">12</span>
-          <span className="text-sm font-medium text-gray-500">Avg. Students / Session</span>
+          <span className="text-4xl font-black text-[#031A10] font-manrope">{totalStudents}</span>
+          <span className="text-sm font-medium text-gray-500">Total Classes Taught</span>
         </div>
       </div>
 
@@ -213,9 +236,11 @@ export default function TeacherDashboard({ session }: { session: SessionData }) 
       >
         {/* Left Side: Secondary Actions */}
         <div className="flex-1 grid grid-cols-2 gap-4">
+          {/* Action 1: Course Materials */}
           <button 
+            onClick={() => router.push('/materials')}
             className="rounded-[24px] p-5 flex flex-col items-start justify-between text-left transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
-            style={glassPanel}
+            style={{...glassPanel, gridColumn: 'span 1'}}
           >
             <div className="h-10 w-10 rounded-full bg-white/60 shadow-sm flex items-center justify-center text-[#031A10] mb-2">
               <BookOpen className="w-5 h-5" />
@@ -226,7 +251,9 @@ export default function TeacherDashboard({ session }: { session: SessionData }) 
             </div>
           </button>
           
+          {/* Action 2: View Past Sessions */}
           <button 
+            onClick={() => setIsHistoryModalOpen(true)}
             className="rounded-[24px] p-5 flex flex-col items-start justify-between text-left transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
             style={glassPanel}
           >
@@ -262,103 +289,16 @@ export default function TeacherDashboard({ session }: { session: SessionData }) 
       </div>
 
       {/* 5. Calendar (Spans 2 Cols, 1 Row) */}
-      <div 
-        className="col-span-1 md:col-span-2 md:row-span-1 rounded-[24px] p-6 flex flex-col justify-center"
-        style={glassPanel}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <button className="text-gray-500 bg-white/50 p-2 rounded-full hover:bg-white/80 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
-          <h3 className="text-sm font-bold text-[#031A10] font-manrope">{currentMonth} {currentYear}</h3>
-          <button className="text-gray-500 bg-white/50 p-2 rounded-full hover:bg-white/80 transition-colors"><ChevronRight className="w-4 h-4" /></button>
-        </div>
-        
-        {/* Days Header */}
-        <div className="grid grid-cols-5 gap-4 px-12">
-          {weekDays.map(day => {
-            const isActive = selectedDate === day.n;
-            return (
-              <button 
-                key={day.d} 
-                onClick={() => setSelectedDate(day.n)}
-                className="flex flex-col items-center group focus:outline-none"
-              >
-                <span className="text-xs text-gray-500 font-medium mb-2 group-hover:text-[#031A10] transition-colors">{day.d}</span>
-                <span className={`text-sm font-bold transition-all ${isActive ? 'text-[#031A10] bg-[#D0FFA2] w-8 h-8 rounded-full flex items-center justify-center shadow-md scale-110' : 'text-gray-400 group-hover:text-gray-600'}`}>
-                  {day.n}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <DashboardCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
 
       {/* 6. Tasks (Spans 2 Cols, 1 Row) */}
-      <div 
-        className="col-span-1 md:col-span-2 md:row-span-1 rounded-[32px] p-6 flex flex-col shadow-2xl"
-        style={{ background: '#1A1C19' }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-medium text-white/90">Tasks</h3>
-          <div className="flex items-center gap-3">
-            <button className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
-              <Plus className="w-3 h-3" />
-            </button>
-            <span className="text-lg font-light text-white/50">2/8</span>
-          </div>
-        </div>
-        
-        <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2 min-h-0 pointer-events-auto custom-scrollbar overscroll-contain">
-          {selectedDate === currentDate ? (
-            <>
-              {/* Completed Task */}
-              <div className="flex items-start gap-3">
-                 <div className="mt-0.5 min-w-[16px] w-4 h-4 rounded border border-[#D0FFA2]/50 bg-[#D0FFA2]/10 flex items-center justify-center text-[#D0FFA2]">
-                   <Check className="w-3 h-3" />
-                 </div>
-                 <div>
-                   <p className="text-xs font-medium text-white/90">Review assignments</p>
-                   <p className="text-[10px] text-white/40 mt-0.5">{currentMonth.slice(0,3)} {currentDate}, 08:30</p>
-                 </div>
-              </div>
-              
-              {/* Completed Task */}
-              <div className="flex items-start gap-3">
-                 <div className="mt-0.5 min-w-[16px] w-4 h-4 rounded border border-[#D0FFA2]/50 bg-[#D0FFA2]/10 flex items-center justify-center text-[#D0FFA2]">
-                   <Check className="w-3 h-3" />
-                 </div>
-                 <div>
-                   <p className="text-xs font-medium text-white/90">Team Meeting</p>
-                   <p className="text-[10px] text-white/40 mt-0.5">{currentMonth.slice(0,3)} {currentDate}, 10:30</p>
-                 </div>
-              </div>
+      <DashboardTasks selectedDate={selectedDate} />
 
-              {/* Pending Task */}
-              <div className="flex items-start gap-3 opacity-50">
-                 <div className="mt-0.5 min-w-[16px] w-4 h-4 rounded border border-white/20 bg-white/5 flex items-center justify-center"></div>
-                 <div>
-                   <p className="text-xs font-medium text-white/90">Project Update</p>
-                   <p className="text-[10px] text-white/40 mt-0.5">{currentMonth.slice(0,3)} {currentDate}, 13:00</p>
-                 </div>
-              </div>
-              
-              {/* Extra Pending Task for scrolling */}
-              <div className="flex items-start gap-3 opacity-50">
-                 <div className="mt-0.5 min-w-[16px] w-4 h-4 rounded border border-white/20 bg-white/5 flex items-center justify-center"></div>
-                 <div>
-                   <p className="text-xs font-medium text-white/90">Curriculum Prep</p>
-                   <p className="text-[10px] text-white/40 mt-0.5">{currentMonth.slice(0,3)} {currentDate}, 15:30</p>
-                 </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center text-center h-full opacity-50 py-8">
-              <Calendar className="w-6 h-6 text-white/40 mb-2" />
-              <p className="text-xs text-white/70">No tasks for {currentMonth.slice(0,3)} {selectedDate}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
+      <HistoryModal 
+        isOpen={isHistoryModalOpen} 
+        onClose={() => setIsHistoryModalOpen(false)} 
+        role="teacher" 
+      />
     </div>
   );
 }

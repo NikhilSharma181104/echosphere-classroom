@@ -51,18 +51,7 @@ export default function DashboardPage() {
           avatar_url: supaSession.user.user_metadata?.custom_avatar_url || supaSession.user.user_metadata?.avatar_url || null,
         });
       } else {
-        // Fallback to local bypass dummy session
-        const stored = sessionStorage.getItem('echosphere_session');
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            setSession({ name: parsed.name, role: parsed.role, avatar_url: parsed.avatar_url });
-          } catch {
-            router.push('/auth');
-          }
-        } else {
-          router.push('/auth');
-        }
+        router.push('/auth');
       }
     });
   }, [router]);
@@ -159,7 +148,7 @@ export default function DashboardPage() {
       <div className="absolute top-6 left-0 right-0 z-50 px-4 md:px-8 flex items-center justify-between">
         
         {/* Logo (Far Left) */}
-        <Link href="/dashboard" className="flex items-center gap-2.5 group">
+        <Link href="/" className="flex items-center gap-2.5 group">
           <img src="/SonaAI%20icon1.png" alt="SonaAI Logo" className="h-9 w-9 object-contain bg-white p-1" style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} />
           <span
             className="text-xl font-extrabold tracking-tight"
@@ -250,7 +239,7 @@ export default function DashboardPage() {
       {/* Main content - Centered within the viewport below the navbar */}
       <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 md:px-8 pt-32 pb-6 overflow-hidden flex flex-col">
         {session.role === 'teacher' ? (
-          <TeacherDashboard session={session} />
+          <TeacherDashboard session={session} onAvatarUpload={handleAvatarUpload} />
         ) : (
           <StudentDashboard session={session} onAvatarUpload={handleAvatarUpload} />
         )}
